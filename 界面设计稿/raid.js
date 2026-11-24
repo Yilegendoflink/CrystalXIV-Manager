@@ -411,7 +411,7 @@ function finishCookPlayback(log,checks){
   if(checks)appendCookEvent(`触发 ${checks} 次压力检定。`);
   if(!sessionForToday()&&campaign.session?.ended)appendCookEvent('达到 02:00 的活动截止，本晚已收队。','02:00');
   if(publishRaidMessages(log))persistCrystal();
-  renderCalendar();drawVoice();showRaidBroadcast();refreshOpenGuide();nextResolve();
+  renderCalendar();drawVoice();showRaidBroadcast();refreshOpenGuide();nextResolve();releasePressureEffects();
 }
 function announceCookStep(log,step){
   const time=cookClockTime(log.started,preparationSeconds+step.seconds);
@@ -504,7 +504,7 @@ function revealResolve(){
 }
 function advanceResolve(){
   if(!revealed){revealResolve();return;}
-  clearTimeout(revealTimer);resolveQueue.shift();showingResolve=false;$('#resolve-film').close();nextResolve();refreshCookControls();renderOperations();
+  clearTimeout(revealTimer);resolveQueue.shift();showingResolve=false;$('#resolve-film').close();nextResolve();refreshCookControls();renderOperations();releasePressureEffects();
 }
 $('#resolve-next').onclick=advanceResolve;
 $('#resolve-film').addEventListener('cancel',e=>{e.preventDefault();advanceResolve();});

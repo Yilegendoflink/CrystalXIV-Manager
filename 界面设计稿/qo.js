@@ -261,7 +261,8 @@ function openMemberProfile(member) {
   }
   const pressure=pressureOf(member);
   element(body,'p',`每日可用 ${availabilityText(member)}`);
-  element(body,'p',`精力 ${Math.round(energyOf(member))} · 压力 ${pressure.value} · 实战发挥 ${Math.round(battleFactor(member)*100)}%`);
+  element(body,'p',`精力 ${Math.round(energyOf(member))} · 实战发挥 ${Math.round(battleFactor(member)*100)}%`);
+  mountPressureMeter(body,member);
   if (pressure.encouragedUntil > campaignHour()) {
     element(body,'p',`受鼓励 · 实战发挥 +10% · 剩余约 ${Math.ceil(pressure.encouragedUntil-campaignHour())} 小时`);
   }

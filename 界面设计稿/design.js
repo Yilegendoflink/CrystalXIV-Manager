@@ -311,6 +311,7 @@ function changePressure(member, amount, at) {
   const value = Math.max(0, Math.min(100, state.value + amount));
   if (value < 100) {
     pressures.set(member.name, { ...state, value });
+    recordPressureChange(member,state.value,value);
     return;
   }
   const mood = randomValue() < 0.5 ? 'collapse' : 'faith';
@@ -320,6 +321,7 @@ function changePressure(member, amount, at) {
   const check = { name: member.name, role: member.role, mood, label: result.label, trait, at };
   pressureChecks.push(check);
   queueResolveFilm(check);
+  recordPressureChange(member,state.value,100,result.reset);
 }
 
 function trialPressure(result, at) {
@@ -674,7 +676,10 @@ function drawThread() {
   const team = currentThread === 'team';
   const member = directMember();
   $('#qo-thread-title').textContent = team ? '炎帝陵固定队' : member ? displayName(member) : currentThread === 'backup' ? '雀斑' : currentThread.slice(3);
-  $('#qo-thread-note').textContent = team ? `队伍群聊 · 预约 ${timeWindowText(appointmentStart,appointmentEnd)}` : member ? `私聊 · ${member.role} · 压力 ${pressureOf(member).value}` : '历史私聊';
+  $('#qo-thread-note').textContent = team ? `队伍群聊 · 预约 ${timeWindowText(appointmentStart,appointmentEnd)}` : member ? `私聊 · ${member.role}` : '历史私聊';
+  const meter=$('#qo-thread-pressure');
+  meter.replaceChildren();meter.hidden=!member;
+  if(member)mountPressureMeter(meter,member);
   $('#qo-ready').hidden = !team;
   $('#qo-pin').hidden = !team;
   for (const [avatar, name, time, text] of threads[currentThread] ?? []) {
@@ -705,6 +710,7 @@ function drawMembers() {
     element(button, 'strong', member ? displayName(member) : '空缺');
     element(button, 'small', recruitedStart ? member ? '首发' : '待招募' : index === 3 ? backupMember ? '替补' : '请假' : '已确认');
     button.addEventListener('click', () => { memberIndex = index; if(member)openMemberProfile(member);else{ drawMembers(); $('#qo-members').querySelectorAll('button')[index].focus(); } });
+    if(member)mountPressureMeter(item,member,'compact');
   });
   const detail = $('#qo-member-detail');
   const member = team[memberIndex];
@@ -796,15 +802,13 @@ function drawCookParty(){
     chip(title,member.role);element(title,'strong',member.name);
     const opening=live?.partyStart[live.names.indexOf(member.name)];
     const elapsed=live ? Math.min(live.minutes*60,preparationSeconds+(live.steps[raidPlayback.index]?.seconds??0)) : 0;
-    const pressure=opening?.pressure??pressureOf(member).value;
     const stamina=Math.round(opening?Math.max(0,opening.energy-pullEnergyCost(elapsed/60)):energyOf(member));
-    for(const [label,value,kind] of [['压力',pressure,'pressure'],['精力',stamina,'energy']]){
-      const row=element(card,'div',null,'cook-party-meter '+kind);
-      if(kind==='pressure'?value>=85||value<30:value<=50)row.dataset.warning='true';
-      element(row,'span',label);element(row,'strong',String(value));
-      const bar=element(row,'progress',null);bar.max=100;bar.value=value;
-      bar.setAttribute('aria-label',member.name+'的'+label);
-    }
+    mountPressureMeter(card,member);
+    const row=element(card,'div',null,'cook-party-meter energy');
+    if(stamina<=50)row.dataset.warning='true';
+    element(row,'span','精力');element(row,'strong',String(stamina));
+    const bar=element(row,'progress',null);bar.max=100;bar.value=stamina;
+    bar.setAttribute('aria-label',member.name+'的精力');
   }
 }
 
@@ -827,8 +831,8 @@ function drawVoice() {
   const events = $('#cook-pressure-events');
   events.replaceChildren();
   for (const { name, label, trait } of [...pressureChecks].reverse()) element(events, 'li', `${name} · ${label} · ${trait}`);
-  const high = lineup().find(member => member && pressureOf(member).value >= 85);
-  const low = lineup().find(member => member && pressureOf(member).value < 30);
+  const high = lineup().find(member => member && visiblePressure(member) >= 85);
+  const low = lineup().find(member => member && visiblePressure(member) < 30);
   $('#cook-advice').textContent = high ? `${high.role} ${high.name}压力偏高，日程中可安排对谈。`
     : low ? `${low.role} ${low.name}压力偏低，可通过对谈明确下一把目标。` : '查看精力和临时状态，决定下一时段的安排。';
   grid.replaceChildren();
@@ -850,13 +854,7 @@ function drawVoice() {
       ? speaking ? '正在发言' : member.role === 'D4' ? '已连线 · 静音' : '已连线'
       : location ? `在${channelLabels[location]}` : member === seats[3] ? '请假 · 未进频道' : '未连线';
     element(card, 'p', `${gameOnline(member) ? '游戏已到场' : '游戏离线'} · ${presence}`);
-    const pressure = element(card, 'div', null, `pressure${state.value >= 85 ? ' high' : ''}`);
-    element(pressure, 'span', '压力');
-    element(pressure, 'strong', `${state.value}${state.value < 30 ? ' 低' : state.value >= 85 ? ' 高' : ''}`);
-    const meter = element(card, 'progress', null);
-    meter.value = state.value;
-    meter.max = 100;
-    meter.setAttribute('aria-label', `${member.name}的压力`);
+    mountPressureMeter(card,member);
     const remaining = energyOf(member);
     element(card, 'p', `精力 ${Math.round(remaining)}/100 · ${energyLabel(remaining)}`, remaining <= 50 ? 'energy-low' : undefined);
     element(card, 'p', `实战发挥 ${Math.round(battleFactor(member) * 100)}%`);
@@ -895,9 +893,11 @@ function syncLineup() {
   reserveList.hidden = reserves.length === 0;
   reserveList.textContent = reserves.length ? '候补' : '';
   for (const member of reserves) {
-    const button = element(reserveList,'button',displayName(member),'plain');
+    const row=element(reserveList,'span',null,'qo-reserve-row');
+    const button = element(row,'button',displayName(member),'plain');
     button.type = 'button';
     button.onclick = () => openMemberProfile(member);
+    mountPressureMeter(row,member,'compact');
   }
   drawMembers();
   if (activeApp === 'qo') { drawQoSessions(); drawThread(); }
@@ -930,6 +930,7 @@ let postIndex = 0;
 
 function resetScenario(next, empty = false) {
   resetNotices();
+  resetPressureEffects();
   if(typeof resetCookPlayback==='function')resetCookPlayback();
   if(typeof resetGuide==='function')resetGuide();
   calendar = next;

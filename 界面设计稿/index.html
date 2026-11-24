@@ -9,6 +9,7 @@
   <script src="./traits.js" defer></script>
   <script src="./qo.js" defer></script>
   <script src="./communications.js" defer></script>
+  <script src="./pressure-effects.js" defer></script>
   <script src="./design.js" defer></script>
   <link rel="stylesheet" href="./qo.css">
   <link rel="stylesheet" href="./communications.css">
@@ -18,6 +19,7 @@
   <script src="./manager.js" defer></script>
   <script src="./crystal-save.js" defer></script>
   <link rel="stylesheet" href="./raid.css">
+  <link rel="stylesheet" href="./pressure-effects.css">
   <link rel="stylesheet" href="./operations.css">
   <link rel="stylesheet" href="./doc.css">
   <link rel="stylesheet" href="./manager.css">
@@ -141,6 +143,7 @@
           </aside>
           <div class="qo-chat">
             <header class="pane-head"><div><h2 id="qo-thread-title">炎帝陵固定队</h2><p id="qo-thread-note">队伍群聊 · 预定晚间开荒</p></div><div class="qo-tools"><span class="pill" id="qo-ready">7/8 已确认</span><button type="button" class="plain" id="qo-settings">群聊设置</button></div></header>
+            <div id="qo-thread-pressure" hidden></div>
             <p id="qo-pin" class="pinned">群公告 · 先确认 H2，进语音后对一次换坦口令。</p>
             <section id="qo-incident" class="incident-card" aria-label="待处理队务" hidden></section>
             <div id="qo-messages" class="messages" role="log" aria-label="会话消息"></div>

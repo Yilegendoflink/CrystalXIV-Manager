@@ -1,0 +1,44 @@
+.pressure-meter{--pressure-ink:#ffe4c8;--pressure-quiet:#dfbfb9;--pressure-rail:#24202d;--pressure-frame:#705763;--pressure-fill:#bb795f;--pressure-glow:#ebac7d;--fx-glow:#ff9c69;display:block;min-width:0;margin:3px 0 5px;color:var(--pressure-ink)}
+.pressure-readout{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:17px;font-size:11px;line-height:1.15}
+.pressure-label{color:var(--pressure-quiet)}
+.pressure-value{font:700 17px/.95 var(--mono);font-variant-numeric:tabular-nums}
+.pressure-status{margin-left:auto;padding:1px 3px;border:1px solid currentColor;font-size:10px;font-weight:750;white-space:nowrap}
+.pressure-status::before{content:'';display:inline-block;width:4px;height:4px;margin-right:4px;vertical-align:2px;transform:rotate(45deg);background:currentColor}
+.pressure-track{display:block;position:relative;isolation:isolate;overflow:hidden;height:8px;margin-top:3px;border:1px solid var(--pressure-frame);background:repeating-linear-gradient(90deg,transparent 0 7px,#1e182840 7px 8px),var(--pressure-rail)}
+.pressure-fill{display:block;height:100%;max-width:100%;background:repeating-linear-gradient(120deg,transparent 0 4px,#24172455 4px 6px),var(--pressure-fill);box-shadow:inset 0 1px var(--pressure-glow),1px 0 var(--pressure-glow)}
+.pressure-track::after{content:'';position:absolute;top:0;bottom:0;width:44%;opacity:0;pointer-events:none}
+.pressure-meter[data-band=high]{--pressure-ink:#ffceb2;--pressure-quiet:#f2c0a9;--pressure-frame:#d07464;--pressure-rail:#391d2b;--pressure-fill:#9c3e3d;--pressure-glow:#ffab71}
+.pressure-meter[data-band=high] .pressure-status{color:#ffb48b;background:#50242c}
+.pressure-meter[data-band=high] .pressure-track{box-shadow:0 0 0 1px #752f38,0 0 8px #ef754260}
+.pressure-meter[data-band=high] .pressure-track::after{right:0;background:repeating-linear-gradient(110deg,#ffab7220 0 4px,#ffab72a8 4px 5px,transparent 5px 10px);opacity:.55;animation:pressure-embers 1.5s steps(5,end) infinite alternate}
+.pressure-meter[data-band=low]{--pressure-ink:#e8dafe;--pressure-quiet:#d0c1e6;--pressure-frame:#9b8bb6;--pressure-rail:#211c33;--pressure-fill:#786393;--pressure-glow:#c0aadc}
+.pressure-meter[data-band=low] .pressure-status{color:#d8c4ff;background:#39304e;border-style:dashed}
+.pressure-meter[data-band=low] .pressure-track{box-shadow:0 0 0 1px #544663,0 0 7px #a987c54f}
+.pressure-meter[data-band=low] .pressure-track::after{left:0;background:repeating-linear-gradient(145deg,#b4a2d229 0 4px,#b4a2d295 4px 5px,transparent 5px 9px);opacity:.58;animation:pressure-ash 2.1s ease-in-out infinite alternate}
+.pressure-deltas{display:flex;gap:3px;margin-left:auto}
+.pressure-deltas:has([hidden]+[hidden]){display:none}
+.pressure-delta{padding:1px 3px;border:1px solid currentColor;font:700 10px/1 var(--mono);white-space:nowrap}
+.pressure-rise{color:#ffae82;background:#572a32}
+.pressure-fall{color:#addbd4;background:#29404b}
+.pressure-meter[data-motion=fall]{--fx-glow:#9be0d3}
+.pressure-meter[data-motion=mixed]{--fx-glow:#ffdc9b}
+.pressure-flare,.pressure-sparks{position:absolute;pointer-events:none;opacity:0}
+.pressure-flare{inset-block:0;background:repeating-linear-gradient(115deg,var(--fx-glow) 0 2px,transparent 2px 5px);filter:drop-shadow(0 0 3px var(--fx-glow))}
+.pressure-sparks{top:1px;width:3px;height:3px;background:var(--fx-glow);box-shadow:-3px 3px var(--fx-glow),4px 1px var(--fx-glow),7px 4px var(--fx-glow)}
+.cook-party-card:has(.pressure-meter[data-band=high]){border-color:#9d544f;background:#362730;box-shadow:inset 2px 0 #d38462}
+.cook-party-card:has(.pressure-meter[data-band=low]){border-color:#786988;background:#30293f;box-shadow:inset 2px 0 #a18ab7}
+.cook-party .pressure-meter{margin-bottom:3px}
+body:has(#app-cook.is-active #cook-party [data-motion]) .notice-stack{top:78px;bottom:auto}
+@media(max-width:740px){body:has(#app-cook.is-active #cook-party [data-motion]) .notice-stack{top:148px}}
+.pressure-meter-compact{margin:0 4px 3px}
+.pressure-meter-compact .pressure-track{height:6px;margin-top:2px}
+.pressure-meter-compact .pressure-readout{font-size:10px;min-height:13px;gap:3px}
+.pressure-meter-compact .pressure-value{font-size:12px}
+.qo-reserve-row{display:block;margin-top:3px}
+#qo-thread-pressure{padding:2px 10px;background:#eee5ed}
+.qo .pressure-meter,#qo-profile-body .pressure-meter{--pressure-ink:#49313c;--pressure-quiet:#63454d}
+.qo .pressure-meter[data-band=high],#qo-profile-body .pressure-meter[data-band=high]{--pressure-ink:#963e38;--pressure-quiet:#784740}
+.qo .pressure-meter[data-band=low],#qo-profile-body .pressure-meter[data-band=low]{--pressure-ink:#5c457a;--pressure-quiet:#634c76}
+@keyframes pressure-embers{from{opacity:.44;background-position:0 0}to{opacity:.88;background-position:10px 2px}}
+@keyframes pressure-ash{from{opacity:.42;transform:translateX(-3px)}to{opacity:.72;transform:translateX(2px)}}
+@media(prefers-reduced-motion:reduce){.pressure-track::after{animation:none}}
