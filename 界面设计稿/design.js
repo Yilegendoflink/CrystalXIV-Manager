@@ -800,6 +800,8 @@ function drawCookParty(){
   for(const member of members){
     const card=element(list,'article',null,'cook-party-card'),title=element(card,'header',null);
     chip(title,member.role);element(title,'strong',member.name);
+    card.dataset.member=member.name;
+    decorateTraitPulse(card,member.name);
     const opening=live?.partyStart[live.names.indexOf(member.name)];
     const elapsed=live ? Math.min(live.minutes*60,preparationSeconds+(live.steps[raidPlayback.index]?.seconds??0)) : 0;
     const stamina=Math.round(opening?Math.max(0,opening.energy-pullEnergyCost(elapsed/60)):energyOf(member));
@@ -835,6 +837,7 @@ function drawVoice() {
   const low = lineup().find(member => member && visiblePressure(member) < 30);
   $('#cook-advice').textContent = high ? `${high.role} ${high.name}压力偏高，日程中可安排对谈。`
     : low ? `${low.role} ${low.name}压力偏低，可通过对谈明确下一把目标。` : '查看精力和临时状态，决定下一时段的安排。';
+  if(traitAnchor&&grid.contains(traitAnchor))hideTraitTooltip();
   grid.replaceChildren();
   if (members.length === 0) element(grid, 'p', '当前频道无人。', 'voice-empty');
   for (const member of members) {
@@ -859,7 +862,7 @@ function drawVoice() {
     element(card, 'p', `精力 ${Math.round(remaining)}/100 · ${energyLabel(remaining)}`, remaining <= 50 ? 'energy-low' : undefined);
     element(card, 'p', `实战发挥 ${Math.round(battleFactor(member) * 100)}%`);
     if (mood) element(card, 'p', `${mood.label} · 剩 ${Math.ceil(state.until - absoluteHour())} 小时`, 'mood-label');
-    if (state.traits.length) element(card, 'p', `特质 · ${state.traits.join('、')}`);
+    if(state.traits.length)mountTraitBadges(element(card,'span',null,'voice-traits'),state.traits);
   }
   refreshQoInbox();
   drawCookParty();
@@ -931,6 +934,7 @@ let postIndex = 0;
 function resetScenario(next, empty = false) {
   resetNotices();
   resetPressureEffects();
+  resetTraitPresentation();
   if(typeof resetCookPlayback==='function')resetCookPlayback();
   if(typeof resetGuide==='function')resetGuide();
   calendar = next;
@@ -1127,6 +1131,7 @@ function drawForum() {
     });
   });
   const panel = $('#forum-detail');
+  if(traitAnchor&&panel.contains(traitAnchor))hideTraitTooltip();
   panel.replaceChildren();
   const post = posts[postIndex];
   if (!post) {renderRecruitCountdowns();return;}
@@ -1175,8 +1180,9 @@ function drawForum() {
     element(body,'strong',candidate.name);
     element(body, 'small', `每日可用 ${availabilityText(candidate)}`);
     element(body, 'small', candidate.revealed
-      ? `执行 ${candidate.execution} · 特质 ${candidate.trait}` : `执行约 ${Math.max(0,candidate.execution - 7)}–${Math.min(100,candidate.execution + 7)} · 特质待核实`);
+      ? `执行 ${candidate.execution}` : `执行约 ${Math.max(0,candidate.execution - 7)}–${Math.min(100,candidate.execution + 7)} · 特质待核实`);
     if (candidate.revealed) {
+      mountTraitBadges(element(body,'span',null,'voice-traits'),candidate.traits??(candidate.trait?[candidate.trait]:[]));
       element(body, 'small', `协作 ${candidate.coordination} · 应变 ${candidate.reaction} · 手法 ${candidate.technique} · 资质 ${candidate.aptitude}`);
       const total = Object.keys(recruitAttributes).reduce((sum,key) => sum + candidate[key], 0);
       element(body, 'small', `总能力 ${total}`);

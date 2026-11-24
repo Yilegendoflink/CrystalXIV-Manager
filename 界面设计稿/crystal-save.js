@@ -96,6 +96,11 @@ function validateCampaign(save){
   const log=c.last;
   if(log&&(!Array.isArray(log.names)||log.names.length!==8||!Array.isArray(log.steps)||!log.steps.length||
     log.steps.some(s=>!s||phases[s.p]?.[s.i]!==s.key||!Number.isInteger(s.slot)||s.slot<0||s.slot>7||(s.work&&!Array.isArray(s.work)))))throw new Error('战报无效。');
+  if(log){
+    const validTriggers=items=>items===undefined||Array.isArray(items)&&items.every(item=>item&&log.names.includes(item.member)&&
+      typeof item.trait==='string'&&typeof item.effect==='string'&&['boon','curse'].includes(item.tone));
+    if(!validTriggers(log.settlementTraits)||log.steps.some(step=>!validTriggers(step.traitTriggers)))throw new Error('特质发动记录无效。');
+  }
   if(log&&((log.pendingNotices!==undefined&&(!Array.isArray(log.pendingNotices)||log.pendingNotices.some(notice=>!validNotice(notice))))||
     (log.pendingChat!==undefined&&(!Array.isArray(log.pendingChat)||log.pendingChat.some(row=>!validChatRow(row))))))throw new Error('待播报的战斗结算无效。');
   const normalized=structuredClone(save);

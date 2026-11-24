@@ -77,6 +77,7 @@ function appendCookEvent(text, time=raidClockLabel()){
   element(row,'span',text);
   while(log.children.length>80)log.firstElementChild.remove();
   log.scrollTop=log.scrollHeight;
+  return row;
 }
 function cookClockTime(hour, elapsedSeconds=0){
   const minute=(Math.round(hour*60)+Math.floor(elapsedSeconds/60))%1440;
@@ -251,6 +252,7 @@ function resolveCampaignPull(){
   const clampQ=v=>Math.min(98,Math.max(12,Math.round(v)));
   outer: for(const [p,phase] of phases.entries())for(const [i,key] of phase.entries()){
     const [title,task]=jobs[key],works=assignments(p,i,true),slot=works[0].slot,person=team[slot];
+    const traitTriggers=[];
     const progress=campaign.discovery[mechanicId(p,i)]??0;
     const unavailable=key==='charge'||key==='nails'||key==='inferno';
     const seconds=timelineSeconds(progressWeight+timelineWeight(key,p))-timelineSeconds(progressWeight);
@@ -265,18 +267,34 @@ function resolveCampaignPull(){
       const worker=team[w.slot],partner=team[works[index===0?1:0].slot];
       const owned=pressureOf(worker).traits;
       let rating=fieldStat(worker,w.slot,w.stat);
-      if(w.stat==='coordination'&&owned.includes('交接迟疑')&&affinity(worker,partner)<50)rating*=.65;
-      if(index>0&&w.stat==='execution'&&owned.includes('下意识沉默'))rating*=1.15;
+      if(rating>0&&w.stat==='coordination'&&owned.includes('交接迟疑')&&affinity(worker,partner)<50){
+        rating*=.65;
+        recordTraitTrigger(traitTriggers,worker,'交接迟疑',`${w.task} · 协作 ×0.65`,'curse');
+      }
+      if(rating>0&&index>0&&w.stat==='execution'&&owned.includes('下意识沉默')){
+        rating*=1.15;
+        recordTraitTrigger(traitTriggers,worker,'下意识沉默',`${w.task} · 执行 ×1.15`);
+      }
       return sum+rating;
     },0)/works.length;
     const conflicts=works.length-new Set(works.map(w=>w.slot)).size;
     const traits=pressureOf(person).traits;
-    const traitBonus=(traits.includes('读秒专注')?18:0)-(traits.includes('下意识沉默')?22:0);
+    const focusBonus=traits.includes('读秒专注')?18:0;
+    const silencePenalty=traits.includes('下意识沉默')?22:0;
     const teamMargin=team.reduce((sum,m,j)=>{
       const {stat,target}=primaryCheck(p,key,j,progress);
       return sum+fieldStat(m,j,stat)-target;
     },0)/8;
-    const coordination=clampQ(80+.65*(caller-workRequirement(p,progress))+.16*teamMargin+.22*practice[slot].m-2*p-(lastOwner===slot?6:0)-8*conflicts+traitBonus);
+    const actionRate=80+.65*(caller-workRequirement(p,progress))+.16*teamMargin+.22*practice[slot].m-2*p-(lastOwner===slot?6:0)-8*conflicts;
+    const coordination=clampQ(actionRate+focusBonus-silencePenalty);
+    if(focusBonus){
+      const gain=coordination-clampQ(actionRate-silencePenalty);
+      if(gain>0)recordTraitTrigger(traitTriggers,person,'读秒专注',`动作通过率 +${gain} 个百分点`);
+    }
+    if(silencePenalty){
+      const loss=clampQ(actionRate+focusBonus)-coordination;
+      if(loss>0)recordTraitTrigger(traitTriggers,person,'下意识沉默',`动作通过率 −${loss} 个百分点`,'curse');
+    }
     const roll=rollCombat(), correct=roll<coordination;
     const chargeHits=[];
     if(key==='charge')for(let j=0;j<8;j++){
@@ -305,10 +323,15 @@ function resolveCampaignPull(){
     practice.forEach((m,j)=>{
       const aptitude=team[j].aptitude??70;
       const coaching=success&&traits.includes('带练耐心')&&j===works[1].slot&&j!==slot&&m.m<50?1.6:1;
+      let learnedMore=false;
       for(const axis of ['s','m','o']){
+        const before=m[axis];
         const base=axis==='m'?8:axis==='s'&&j<4||axis==='o'&&j>=4?7:5;
-        m[axis]=Math.min(100,m[axis]+Math.max(1,Math.round(base*coaching*(.55+aptitude*.009)*exposure[j]*(1-m[axis]/125))));
+        const grownBy=multiplier=>Math.min(100,before+Math.max(1,Math.round(base*multiplier*(.55+aptitude*.009)*exposure[j]*(1-before/125))));
+        m[axis]=grownBy(coaching);
+        if(coaching>1&&m[axis]>grownBy(1))learnedMore=true;
       }
+      if(learnedMore)recordTraitTrigger(traitTriggers,person,'带练耐心',`${team[j].name}的熟练度成长 ×1.6`);
     });
     strain=success?Math.max(0,strain-1):Math.min(7,strain+2);
     lastOwner=slot;
@@ -320,6 +343,7 @@ function resolveCampaignPull(){
     const healing=defenseRoll<survival?10:3;
     partyHp=partyHit.map(value=>value===0?0:Math.min(100,value+healing));
     const step={p,i,key,title,slot,task,work:works.map(w=>({slot:w.slot,task:w.task})),conflicts,autos,coordination,roll,survival,defenseRoll,correct,success,fatal,hp:Math.max(0,Math.ceil(hp)),partyHit,partyHp,seconds:combatSeconds,loss,chargeHits,residual,unavailable,discovery};
+    if(traitTriggers.length)step.traitTriggers=traitTriggers;
     log.steps.push(step);
     if(hp<=0){log.clear=true;break outer;}
     if(fatal||key==='end')break outer;
@@ -338,14 +362,23 @@ function resolveCampaignPull(){
   if(ticks)settleRelationshipPressure(team,at-ticks/2,ticks,log);
   const unresolved=incidentParticipants(team);
   log.energyCost=pullEnergyCost(minutes);
+  const endTriggers=[];
   for(const m of team){
     energy.set(m.name,Math.max(0,energyOf(m)-log.energyCost));
     const traits=pressureOf(m).traits;
     const stress=log.clear?raidStress.clear:fresh?raidStress.progress:wipeStress(m,repeated);
     const overcame=traits.includes('逆风耐心')&&log.steps.some(s=>s.success&&s.p+'-'+s.key===previousWipe);
+    const reducedWipe=!log.clear&&!fresh&&repeated&&stress<raidStress.repeated;
+    if(reducedWipe||overcame){
+      const relief=(reducedWipe?raidStress.repeated-stress:0)+(overcame?10:0);
+      recordTraitTrigger(endTriggers,m,'逆风耐心',`抵消 ${relief} 压力`);
+    }
+    const fearsBlame=!log.clear&&!final.correct&&team[final.slot]===m&&traits.includes('害怕背锅');
+    if(fearsBlame)recordTraitTrigger(endTriggers,m,'害怕背锅','额外压力 +22','curse');
     const conflict=unresolved.includes(m.name)?incidentPullStress:0;
-    changePressure(m,stress+conflict-(overcame?10:0)+(!log.clear&&!final.correct&&team[final.slot]===m&&traits.includes('害怕背锅')?22:0),at);
+    changePressure(m,stress+conflict-(overcame?10:0)+(fearsBlame?22:0),at);
   }
+  if(endTriggers.length)log.settlementTraits=endTriggers;
   if(unresolved.length)log.unresolved=unresolved;
   stageBattleConversation(log,team,fresh,repeated,at);
   log.incident=settleRaidUnexpectedEvent(team,final,repeated,at,log);
@@ -386,7 +419,9 @@ function showRaidBroadcast(){
       const delegates=(step.work??[step]).map(w=>w.task+' '+log.names[w.slot]).join('、');
       const row=element(summary,'p','P'+(step.p+1)+' '+step.title+' ｜ '+delegates+' ｜ 动作 '+step.roll+'/'+step.coordination+' · 生存 '+step.defenseRoll+'/'+step.survival+' · 普攻 '+(step.autos??0)+' 次'+(step.key==='charge'?' · 命中 '+step.loss+' 人':'')+(step.key==='nails'?' · 残楔 '+step.residual:''));
       row.className=step.success?'passed':'missed';
+      if(step.traitTriggers?.length)element(summary,'p',step.traitTriggers.map(traitTriggerText).join('；'),'raid-report-traits');
     }
+    if(log.settlementTraits?.length)element(summary,'p',log.settlementTraits.map(traitTriggerText).join('；'),'raid-report-traits');
   }
   if(live&&!feedFrame){
     feedFrame=document.createElement('iframe');feedFrame.title='炎帝陵战斗画面';feedFrame.src='../index.html?screen';
@@ -409,9 +444,11 @@ function finishCookPlayback(log,checks){
   if(log.unresolved?.length)appendCookEvent(`争执未处理 · ${log.unresolved.join('、')}各增加 ${incidentPullStress} 压力。`);
   if(log.incident)appendCookEvent(`意外 · ${log.incident} · 全队压力 +${log.incidentPressure}${log.incidentNeedsMediation?' · 可安排调解':''}。`);
   if(checks)appendCookEvent(`触发 ${checks} 次压力检定。`);
+  settlementTraits=log.settlementTraits??[];
+  appendTraitEvents(settlementTraits,raidClockLabel());
   if(!sessionForToday()&&campaign.session?.ended)appendCookEvent('达到 02:00 的活动截止，本晚已收队。','02:00');
   if(publishRaidMessages(log))persistCrystal();
-  renderCalendar();drawVoice();showRaidBroadcast();refreshOpenGuide();nextResolve();releasePressureEffects();
+  renderCalendar();drawVoice();showRaidBroadcast();refreshOpenGuide();nextResolve();releasePressureEffects();showSettlementTraits();
 }
 function announceCookStep(log,step){
   const time=cookClockTime(log.started,preparationSeconds+step.seconds);
@@ -419,6 +456,7 @@ function announceCookStep(log,step){
   const intel=step.discovery;
   const update=intel?.before===null?' · 初见，已记入 Doc':intel?.after>intel?.before?` · 探明度 ${intel.before}% → ${intel.after}%`:'';
   appendCookEvent(`P${step.p+1} ${step.title} · ${log.names[step.slot]}负责${warning}${update}`,time);
+  appendTraitEvents(step.traitTriggers,time);
   return time;
 }
 function playCookEvents(log,checks){
@@ -432,6 +470,7 @@ function playCookEvents(log,checks){
     renderManagerClock();
     $('#stream-stage').textContent=`P${step.p+1} · ${step.title}`;
     drawCookParty();
+    showTraitTriggers(step.traitTriggers);
     syncCookFrame();
     refreshOpenGuide();
     raidPlayback.timer=setTimeout(tick,eventStepMs);
@@ -504,7 +543,7 @@ function revealResolve(){
 }
 function advanceResolve(){
   if(!revealed){revealResolve();return;}
-  clearTimeout(revealTimer);resolveQueue.shift();showingResolve=false;$('#resolve-film').close();nextResolve();refreshCookControls();renderOperations();releasePressureEffects();
+  clearTimeout(revealTimer);resolveQueue.shift();showingResolve=false;$('#resolve-film').close();nextResolve();refreshCookControls();renderOperations();releasePressureEffects();showSettlementTraits();
 }
 $('#resolve-next').onclick=advanceResolve;
 $('#resolve-film').addEventListener('cancel',e=>{e.preventDefault();advanceResolve();});

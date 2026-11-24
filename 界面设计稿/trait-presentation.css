@@ -1,0 +1,26 @@
+.profile-traits{margin:8px 0;padding:7px 9px;background:#2e2737;border:1px solid #9d727e;border-left:3px solid #d3a181;color:#f3dac7}
+.profile-traits h4{margin:0 0 5px;font-size:14px;color:#ffe0ba}
+.profile-trait-row{display:grid;grid-template-columns:57px minmax(0,1fr);gap:5px;align-items:baseline;margin:4px 0}
+.profile-trait-label,.profile-trait-badges small{font-size:11px;color:#d6b8c1}
+.profile-trait-badges,.voice-traits{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.voice-traits{margin-top:4px}
+.member-trait-badge{border:1px solid var(--trait-edge);background:var(--trait-bg);color:var(--trait-ink);padding:2px 5px;font-size:12px;font-weight:750;line-height:1.4;text-align:left;box-shadow:inset 0 1px #ffffff20}
+.member-trait-badge::before{content:'';display:inline-block;width:5px;height:5px;margin-right:5px;vertical-align:2px;transform:rotate(45deg);background:currentColor}
+.member-trait-badge:focus-visible{outline-color:#f3c99f}.voice-traits .member-trait-badge{font-size:11px}
+[data-group=innate]:is(.member-trait-badge,.member-trait-tooltip){--trait-edge:#859879;--trait-bg:#303d38;--trait-ink:#d0e8c5}
+[data-group=faith]:is(.member-trait-badge,.member-trait-tooltip){--trait-edge:#ba936a;--trait-bg:#493a30;--trait-ink:#ffdb99}
+[data-group=collapse]:is(.member-trait-badge,.member-trait-tooltip){--trait-edge:#a65e69;--trait-bg:#4e2939;--trait-ink:#ffc5bf}
+.member-trait-tooltip{position:fixed;z-index:110;width:min(275px,calc(100vw - 16px));padding:6px 8px;pointer-events:none;border:1px solid var(--trait-edge);border-left:3px solid var(--trait-edge);background:#2a2231;color:#f8e2ce;box-shadow:3px 4px #1c1620bb;font-size:12px;line-height:1.45}
+.member-trait-tooltip strong{color:var(--trait-ink);margin-right:5px}.member-trait-tooltip small{color:#d9bfc4;font-size:10px}
+.member-trait-tooltip p{margin:2px 0 0;color:#f8e2ce;font-size:12px}
+.cook-trait-stage{position:absolute;inset:10px 0 auto;z-index:2;display:grid;justify-items:center;gap:3px;padding:0 10px;pointer-events:none}
+.cook-trait-flash{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:0 7px;width:min(100%,410px);padding:4px 9px;border:1px solid var(--proc-edge);border-left:3px solid var(--proc-edge);background:var(--proc-bg);color:var(--proc-ink);box-shadow:0 0 13px var(--proc-glow);animation:trait-ignition .35s steps(5,end) both}
+.cook-trait-flash strong,.cook-trait-flash span{overflow-wrap:anywhere}
+.cook-trait-flash strong{font-size:13px}.cook-trait-flash span,.cook-trait-stage small{color:#ffe4d0;font-size:11px}
+[data-trait-tone=boon]{--proc-edge:#e5b875;--proc-ink:#ffe7af;--proc-bg:#3e302eeb;--proc-glow:#dfaa5a8c}
+[data-trait-tone=curse]{--proc-edge:#df8277;--proc-ink:#ffd1c6;--proc-bg:#4c2535f2;--proc-glow:#e45b5c91}
+.cook-party-card[data-trait-tone]{outline:1px solid var(--proc-edge);outline-offset:-1px;animation:trait-card-flash .72s ease-out both}
+#cook-event-feed li[data-trait-tone]{border-left:2px solid var(--proc-edge);background:var(--proc-bg);color:var(--proc-ink);padding-left:6px}
+.raid-report-traits{color:#775048;font-weight:650}
+@keyframes trait-ignition{from{opacity:.3;transform:translateY(-4px);filter:brightness(1.23)}to{opacity:1;transform:none;filter:none}}
+@keyframes trait-card-flash{from{box-shadow:inset 0 0 16px var(--proc-glow)}to{box-shadow:inset 0 0 0 transparent}}

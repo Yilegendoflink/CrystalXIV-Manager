@@ -252,6 +252,8 @@ function openMemberProfile(member) {
   const body=$('#qo-profile-body');
   body.replaceChildren();
   element(body,'h3',displayName(member)+' · '+member.role);
+  const pressure=pressureOf(member);
+  mountProfileTraits(body,member,pressure.traits);
   const stats=element(body,'div',null,'qo-profile-stats');
   const row=veteranStats[seats.findIndex(seat=>seat.role===member.role)];
   const fallback={execution:row[0],coordination:row[1],reaction:row[2],technique:row[3],aptitude:70};
@@ -259,16 +261,12 @@ function openMemberProfile(member) {
     const value=element(stats,'div',null);
     element(value,'small',label);element(value,'strong',String(member[key]??fallback[key]));
   }
-  const pressure=pressureOf(member);
   element(body,'p',`每日可用 ${availabilityText(member)}`);
   element(body,'p',`精力 ${Math.round(energyOf(member))} · 实战发挥 ${Math.round(battleFactor(member)*100)}%`);
   mountPressureMeter(body,member);
   if (pressure.encouragedUntil > campaignHour()) {
     element(body,'p',`受鼓励 · 实战发挥 +10% · 剩余约 ${Math.ceil(pressure.encouragedUntil-campaignHour())} 小时`);
   }
-  const traits = member.traits ?? (member.trait ? [member.trait] : []);
-  element(body,'p','天生特质 · '+(traits.join('、')||'暂无记录'));
-  element(body,'p','压力特质 · '+(pressure.traits.join('、')||'暂无记录'));
   drawProfileGraph(body,member);
   qoButton(body,'发起私聊',()=>{
     $('#qo-profile-dialog').close();
