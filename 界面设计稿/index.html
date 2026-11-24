@@ -265,7 +265,9 @@
     <form id="recruit-form" class="recruit-form">
       <div class="recruit-basics">
         <label>帖子标题<input name="title" required maxlength="42" value="炎帝陵固定队招募"></label>
-        <label>开荒档期<select name="time"><option>20:00–22:00</option><option>22:00–24:00</option><option>次日 00:00–02:00</option><option>18:00–20:00</option><option>16:00–18:00</option><option>14:00–16:00</option><option>12:00–14:00</option><option>10:00–12:00</option></select></label>
+        <fieldset class="recruit-window"><legend>开荒档期 <small id="recruit-window-length"></small></legend>
+          <div class="recruit-window-controls"><label>开始时间<select name="startHour" required></select></label><span aria-hidden="true">→</span><label>结束时间<select name="endHour" required></select></label></div>
+        </fieldset>
       </div>
       <fieldset class="recruit-role-fields"><legend>招募席位</legend><div id="recruit-role-options"></div><footer><p>每批共 2–5 人，已选席位轮流出候选。</p><button type="button" id="recruit-all-roles" class="plain">全选</button></footer></fieldset>
       <details class="recruit-filters"><summary><span>筛选条件</span><small id="recruit-extra"></small></summary>

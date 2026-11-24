@@ -4,8 +4,15 @@
 .recruit-head small{color:#e7c5b6;font:11px var(--mono)}
 #recruit-seat-count{padding:4px 7px;border:1px solid #b98886;background:#433146;color:#ffe1c4;white-space:nowrap;font-size:12px}
 #recruit-form{margin:0;padding:12px 14px;gap:10px}
-.recruit-basics,.recruit-ratings{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px}
+.recruit-basics,.recruit-ratings{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.recruit-basics{grid-template-columns:minmax(0,1fr) minmax(224px,1.2fr);align-items:end}
 .recruit-basics :is(input,select),.recruit-ratings select{width:100%;min-width:0;min-height:33px}
+.recruit-window{min-width:0;margin:0;padding:0 6px 5px;border:1px solid #cbb19a;background:#f8eddd}
+.recruit-window legend{padding:0 3px;font-size:12px;color:#63463c}
+.recruit-window legend small{margin-left:4px;color:#7a5548;font:11px var(--mono)}
+.recruit-window-controls{display:grid;grid-template-columns:minmax(0,1fr) 14px minmax(0,1fr);align-items:end;gap:3px}
+.recruit-form .recruit-window-controls label{font-size:11px;color:#6a5149}
+.recruit-window-controls>span{height:33px;display:grid;place-items:center;color:#8e5748}
 .recruit-role-fields{min-width:0;margin:0;border:1px solid #b99a83;padding:8px;background:#f9eedf}
 .recruit-role-fields legend,.recruit-trait-fields legend{font-size:13px;font-weight:750;color:#63463c;padding:0 4px}
 #recruit-role-options{display:grid;grid-template-columns:2fr 2fr 4fr;gap:8px}
@@ -55,6 +62,7 @@
 .candidate .role-chip{margin-right:5px}
 @media(max-width:440px){
   #recruit-form{padding:9px;gap:7px}.recruit-head{padding:10px}.recruit-role-fields{padding:5px}#recruit-role-options{gap:5px}
+  .recruit-basics{grid-template-columns:minmax(0,1fr);gap:5px}
   .recruit-role-cards{gap:2px}.recruit-form .recruit-role-card{min-height:31px}.recruit-role-card .role-chip{min-width:0;padding-inline:2px}
   .recruit-submit{align-items:flex-start}.recruit-submit .dialog-actions{flex-wrap:nowrap}.recruit-submit button{padding-inline:5px;white-space:nowrap;font-size:12px}
 }

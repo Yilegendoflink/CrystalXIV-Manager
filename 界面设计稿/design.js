@@ -16,10 +16,12 @@ const windowStack = [];
 let activeApp = null;
 let toastTimer;
 const daySlots = [10, 12, 14, 16, 18, 20, 22, 24];
+const recruitEndHours = daySlots.map(hour => hour + 2);
 const timeText = hour => `${String(hour % 24).padStart(2, '0')}:00`;
 const activityTime = hour => `${hour >= 24 ? '次日 ' : ''}${timeText(hour)}`;
 const windowEndText = hour => hour === 24 ? '24:00' : activityTime(hour);
-const slotText = hour => `${activityTime(hour)}–${hour >= 24 ? timeText(hour + 2) : windowEndText(hour + 2)}`;
+const timeWindowText = (start, end) => `${activityTime(start)}–${start >= 24 ? timeText(end) : windowEndText(end)}`;
+const slotText = hour => timeWindowText(hour, hour + 2);
 const absoluteHour = () => (calendar.day - 1) * 24 + calendar.hour;
 let calendar = { day: 7, hour: 18, finished: false };
 function randomValue() { return playingCrystal ? combatRandom() : Math.random(); }
@@ -950,6 +952,7 @@ function arrivalText(hour) {
 }
 
 function recruitSeats(post) { return post.roles===undefined?[post.seat]:post.roles; }
+function validRecruitWindow(start, end) { return daySlots.includes(start) && recruitEndHours.includes(end) && start < end; }
 
 function createCandidate(post, seat) {
   const names = recruitmentNames[seat];
@@ -964,7 +967,8 @@ function createCandidate(post, seat) {
   const another = innateTraits.filter(trait => trait !== firstTrait);
   const traits = randomValue() < .4 ? [firstTrait, another[Math.floor(randomValue()*another.length)]] : [firstTrait];
   const hours = ordinal < 2 ? [20, 22, 24] : ordinal < 4 ? [20, 22] : ordinal < 6 ? [22, 24] : [14, 20];
-  if (post.hour !== undefined && !hours.includes(post.hour)) hours.push(post.hour);
+  const end=post.endHour??post.hour+2;
+  for(const slot of daySlots)if(slot>=post.hour&&slot<end&&!hours.includes(slot))hours.push(slot);
   const candidate = {
     role: seat, name, gender: ordinal % 2 === 0 ? '女' : '男', pressure: 40 + ordinal,
     hours: hours.sort((a,b) => a-b),
@@ -1172,6 +1176,14 @@ $('#cancel-recruit').addEventListener('click', () => $('#recruit-dialog').close(
 const recruitForm = $('#recruit-form');
 const traitOptions = $('#recruit-trait-options');
 const roleOptions = $('#recruit-role-options');
+const recruitStart = recruitForm.elements.startHour;
+const recruitEnd = recruitForm.elements.endHour;
+for(const [select,options,defaultHour] of [[recruitStart,daySlots,20],[recruitEnd,recruitEndHours,22]]){
+  for(const hour of options){
+    const option=element(select,'option',select===recruitEnd?windowEndText(hour):activityTime(hour));
+    option.value=hour;option.defaultSelected=hour===defaultHour;
+  }
+}
 for(const [group,roles] of [['坦克',['MT','ST']],['治疗',['H1','H2']],['输出',['D1','D2','D3','D4']]]){
   const section=element(roleOptions,'div',null,'recruit-role-group');
   element(section,'strong',group);
@@ -1208,6 +1220,10 @@ function recruitConditions() {
   return {traits,attribute,minimum:grade?.minimum ?? 0,duration:4+(traits.length ? 2 : 0)+(grade?.extra ?? 0)};
 }
 function renderRecruitEstimate() {
+  const start=Number(recruitStart.value);
+  if(!validRecruitWindow(start,Number(recruitEnd.value)))recruitEnd.value=String(start+2);
+  for(const option of recruitEnd.options)option.hidden=option.disabled=Number(option.value)<=start;
+  $('#recruit-window-length').textContent=`${Number(recruitEnd.value)-start} 小时`;
   recruitForm.elements.quality.disabled = !recruitForm.elements.attribute.value;
   const {traits,duration} = recruitConditions();
   const roles=new FormData(recruitForm).getAll('seat');
@@ -1227,11 +1243,11 @@ $('#recruit-form').addEventListener('submit', event => {
   const form = new FormData(event.currentTarget);
   const roles = form.getAll('seat');
   const title = form.get('title').trim();
-  const time = form.get('time').trim();
-  const hour = daySlots.find(value => slotText(value) === time);
+  const hour = Number(form.get('startHour'));
+  const endHour = Number(form.get('endHour'));
   const conditions = recruitConditions();
-  if (!title || hour === undefined || !roles.length || roles.some(role=>!Object.hasOwn(recruitmentNames,role)) || (conditions.traits.length && conditions.traits.length !== 3) || calendar.finished) return;
-  boards.recruit.unshift({title,tag:'等待首批',text:`目标档期 ${time}`,roles,hour,...conditions,due:campaignHour()+conditions.duration,batches:[],batchIndex:0});
+  if (!title || !validRecruitWindow(hour,endHour) || !roles.length || roles.some(role=>!Object.hasOwn(recruitmentNames,role)) || (conditions.traits.length && conditions.traits.length !== 3) || calendar.finished) return;
+  boards.recruit.unshift({title,tag:'等待首批',text:`目标档期 ${timeWindowText(hour,endHour)}`,roles,hour,endHour,...conditions,due:campaignHour()+conditions.duration,batches:[],batchIndex:0});
   currentBoard = 'recruit';
   postIndex = 0;
   $('#recruit-dialog').close();

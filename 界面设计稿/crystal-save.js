@@ -75,6 +75,7 @@ function validateCampaign(save){
     if(!Array.isArray(roles)||!roles.length||new Set(roles).size!==roles.length||roles.some(role=>!Object.hasOwn(recruitmentNames,role))||!Number.isFinite(post.due)||post.due<0||
       !Array.isArray(post.batches)||post.batches.some(batch=>!Array.isArray(batch)||batch.some(m=>!m||!d.candidates.some(c=>c.name===m.name&&roles.includes(c.role))))||
       (post.batches.length&&(!Number.isInteger(post.batchIndex)||!post.batches[post.batchIndex])))throw new Error('招募记录无效。');
+    if(post.endHour!==undefined&&!validRecruitWindow(post.hour,post.endHour))throw new Error('招募档期无效。');
     if(post.duration!==undefined&&(
       !daySlots.includes(post.hour)||!Array.isArray(post.traits)||![0,3].includes(post.traits.length)||
       new Set(post.traits).size!==post.traits.length||post.traits.some(trait=>!innateTraits.includes(trait))||
