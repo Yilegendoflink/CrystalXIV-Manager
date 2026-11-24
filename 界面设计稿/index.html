@@ -8,8 +8,10 @@
   <script src="./nge-data.js" defer></script>
   <script src="./traits.js" defer></script>
   <script src="./qo.js" defer></script>
+  <script src="./communications.js" defer></script>
   <script src="./design.js" defer></script>
   <link rel="stylesheet" href="./qo.css">
+  <link rel="stylesheet" href="./communications.css">
   <script src="./raid.js" defer></script>
   <script src="./operations.js" defer></script>
   <script src="./doc.js" defer></script>
@@ -278,6 +280,7 @@
       <footer class="taskbar">
         <button type="button" id="crystal-start" aria-expanded="false" aria-controls="crystal-menu"><canvas data-icon="crystal" width="24" height="24" aria-hidden="true"></canvas>Crystal</button>
         <nav id="task-tabs" class="task-tabs" aria-label="已打开窗口"></nav>
+        <button id="desktop-notices" type="button" class="plain" aria-label="查看通知记录" title="通知记录">通知</button>
         <button id="crystal-sound" type="button" class="plain" aria-pressed="false">音效关</button>
         <div class="tray"><span class="tray-dot" aria-hidden="true"></span><span id="tray-ready">7/8 就绪</span></div>
       </footer>
@@ -362,7 +365,11 @@
     <p id="relationship-event" class="inline-feedback" role="status"></p>
     <footer class="dialog-actions"><form method="dialog"><button class="action">关闭</button></form></footer>
   </dialog>
-  <div id="toast" class="toast" role="status" hidden></div>
+  <div id="notice-stack" class="notice-stack" role="status" aria-live="polite" aria-atomic="false"></div>
+  <dialog id="notice-dialog" aria-labelledby="notice-title">
+    <header class="notice-dialog-head"><h2 id="notice-title">通知记录</h2><form method="dialog"><button type="submit" class="plain">关闭</button></form></header>
+    <ol id="notice-history" class="notice-history"></ol>
+  </dialog>
   <dialog id="resolve-film" aria-labelledby="resolve-heading">
     <div class="resolve-stage"><div class="resolve-rays"></div><canvas id="resolve-face" width="40" height="40" aria-label="队员像素头像"></canvas>
       <h2 id="resolve-heading" aria-live="polite"></h2><p id="resolve-trait"></p><p id="resolve-change"></p>

@@ -139,7 +139,9 @@ function finishShift(message){
   const session=sessionForToday();
   if(!session||session.ended||raidPlayback.active)return;
   session.ended=true;session.decision=false;
-  appendCookEvent(message);addMessage('team',message);
+  appendCookEvent(message);notifyResult('战报','本次开荒收队',message);
+  const team=lineup().filter(Boolean);
+  teamDialogue([[team[0],'辛苦了，我先下了。'],[team[2],'下次先进语音，把今天卡的那段再顺一下。']]);
   renderCalendar();drawVoice();persistCrystal();
 }
 for(const button of $$('[data-shift]'))button.onclick=()=>{
@@ -170,14 +172,18 @@ $('#cook-review').onclick=()=>{
   ensureRaidSession();
   const failed=log.steps.at(-1),members=lineup().filter(gameOnline),at=campaignHour()+5/60;
   log.reviewed=true;
+  const improvement=[];
   for(const member of members){
     const page=campaign.mastery[member.name]??={};
     const entry=page[failed.key]??={s:20,m:0,o:15};
+    improvement.push(Math.min(8,100-entry.m));
     entry.m=Math.min(100,entry.m+8);
     changePressure(member,3,at);
   }
   advanceRaidMinutes(5);
   appendCookEvent(`复盘 ${failed.title} · 5 分钟 · 在场 ${members.length} 人机制熟练度 +8、压力 +3。`);
+  notifyResult('战报',`复盘 · ${failed.title}`,`5 分钟 · 在场 ${members.length} 人 · 机制熟练度 +${effectRange(improvement)} · 压力 +3`,at);
+  teamDialogue([[members[log.steps.at(-1).slot],'我看明白刚才为什么乱了。下把按复盘说的来。']],at);
   renderCalendar();drawVoice();showRaidBroadcast();persistCrystal();
 };
 function combatRandom() {
@@ -326,10 +332,10 @@ function resolveCampaignPull(){
   log.started=campaignHour();
   const at=log.started+minutes/60;
   const hit=log.steps.find(s=>s.chargeHits.length);
-  if(hit)combatAffinityEvent('injury',team,team[hit.chargeHits[0]]);
-  else if(log.steps.some(s=>!s.correct&&s.defenseRoll<s.survival))combatAffinityEvent('rescue',team,team[2]);
+  if(hit)combatAffinityEvent('injury',team,team[hit.chargeHits[0]],at,log);
+  else if(log.steps.some(s=>!s.correct&&s.defenseRoll<s.survival))combatAffinityEvent('rescue',team,team[2],at,log);
   const ticks=Math.floor((campaign.minutes+minutes)/30)-Math.floor(campaign.minutes/30);
-  if(ticks)settleRelationshipPressure(team,at-ticks/2,ticks);
+  if(ticks)settleRelationshipPressure(team,at-ticks/2,ticks,log);
   const unresolved=incidentParticipants(team);
   log.energyCost=pullEnergyCost(minutes);
   for(const m of team){
@@ -341,11 +347,15 @@ function resolveCampaignPull(){
     changePressure(m,stress+conflict-(overcame?10:0)+(!log.clear&&!final.correct&&team[final.slot]===m&&traits.includes('害怕背锅')?22:0),at);
   }
   if(unresolved.length)log.unresolved=unresolved;
-  if(!log.clear)log.incident=rollRaidIncident(team,final,repeated,at);
+  stageBattleConversation(log,team,fresh,repeated,at);
+  if(!log.clear)log.incident=rollRaidIncident(team,final,repeated,at,log);
+  const title=log.clear?`第 ${log.number} 把 · 炎帝陵首通`:`第 ${log.number} 把 · P${final.p+1} ${final.title}团灭`;
+  const conflictNote=unresolved.length?`\n争执未处理 · ${unresolved.join('、')}各加 ${incidentPullStress} 压力。`:'';
+  const usedEnergy=effectRange(team.map((member,index)=>log.partyStart[index].energy-energyOf(member)));
+  notifyResult('战报',title,`用时 ${minutes} 分钟 · 首领剩余 ${final.hp}% · 精力消耗 ${usedEnergy}${conflictNote}`,at,log);
   previousWipe=log.clear?null:signature;
   campaign.best=Math.max(campaign.best,log.steps.length);
   campaign.last=log;campaign.clear=log.clear;
-  addMessage('team',log.clear?'炎帝陵首通，全队完成本次挑战。':'第 '+log.number+' 把止于 P'+(final.p+1)+' '+final.title+'。');
   advanceRaidMinutes(minutes);
   renderCalendar();drawVoice();showRaidBroadcast();persistCrystal();
   playCookEvents(log,pressureChecks.length-beforeChecks);
@@ -399,6 +409,7 @@ function finishCookPlayback(log,checks){
   if(log.incident)appendCookEvent(`队务事件 · ${log.incident}，可在 Cook 或 QO 处理。`);
   if(checks)appendCookEvent(`触发 ${checks} 次压力检定。`);
   if(!sessionForToday()&&campaign.session?.ended)appendCookEvent('达到 02:00 的活动截止，本晚已收队。','02:00');
+  if(publishRaidMessages(log))persistCrystal();
   renderCalendar();drawVoice();showRaidBroadcast();refreshOpenGuide();nextResolve();
 }
 function announceCookStep(log,step){
@@ -484,6 +495,10 @@ function revealResolve(){
   $('#resolve-trait').textContent=item.name+' 获得「'+item.trait+'」';
   if(activeTraitEffects[item.trait])element($('#resolve-trait'),'small',activeTraitEffects[item.trait]);
   $('#resolve-change').textContent='压力 '+result.reset+' · 实战属性 '+(item.mood==='faith'?'+10%':'−30%')+' · 持续两天';
+  if(!item.preview){
+    notifyResult('队务',`${item.name} · ${result.label}`,`${$('#resolve-change').textContent} · 获得「${item.trait}」`,item.at);
+    if(playingCrystal)persistCrystal();
+  }
   $('#resolve-next').textContent=resolveQueue.length>1?'下一位':'继续';
 }
 function advanceResolve(){
@@ -511,5 +526,5 @@ $('#crystal-sound').onclick=async()=>{
 document.addEventListener('click',e=>{if(e.target.closest('button'))interfaceNote(310,.065);});
 for(const button of $$('[data-film-preview]'))button.onclick=()=>{
   const mood=button.dataset.filmPreview,member=lineup()[2]??seats[2],result=pressureResults[mood];
-  queueResolveFilm({name:member.name,role:member.role,mood,label:result.label,trait:result.traits[0]});
+  queueResolveFilm({name:member.name,role:member.role,mood,label:result.label,trait:result.traits[0],preview:true});
 };

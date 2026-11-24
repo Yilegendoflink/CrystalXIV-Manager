@@ -151,7 +151,12 @@ function answerRequest(member, request, accept) {
   request.state = accept ? 'accepted' : 'declined';
   addMessage(qoThreadFor(member), accept
     ? (request.kind==='support' ? '已经留出时间安抚，先按自己的节奏来。' : `已把你安排到 ${member.role} 首发，开团前再核对档期。`)
-    : '收到，这次暂不安排。', false);
+    : '收到，这次暂不安排。');
+  if(accept){
+    const reply=request.kind==='support'?'好，谢谢你。我先把刚才那把放一放。':'收到，我会按这个席位准备。';
+    appendChatRows(qoThreadFor(member),[[member.name[0],member.name,messageClock(campaignHour()),reply]]);
+    if(request.kind==='start')notifyResult('队务','首发安排更新',`${member.role} · ${displayName(member)}`);
+  }
   syncLineup();
 }
 
@@ -193,6 +198,8 @@ function drawGroupSettings() {
     const isStarter = lineup().includes(member) && member!==seats[3];
     const promote = qoButton(buttons,isStarter?'首发':'设首发',()=>{
       selectedStarters.set(member.role,member.name);
+      teamDialogue([[member,`收到，这次我来打 ${member.role}。`]]);
+      notifyResult('队务','首发安排更新',`${member.role} · ${displayName(member)}`);
       syncLineup();drawGroupSettings();
     });
     promote.disabled = isStarter || member===seats[3] || calendar.finished;
@@ -200,7 +207,8 @@ function drawGroupSettings() {
       const wasChatting = currentThread===qoThreadFor(member);
       if(releaseRecruit(member)) {
         if(wasChatting) switchQoThread('team');
-        addMessage('team',`${displayName(member)}已移出队伍，首发名单已更新。`);
+        notifyResult('队务','队员已移出',`${displayName(member)} · 队伍 ${rosterSize()}/${rosterLimit} 人 · 首发 ${readyCount()}/8 席`);
+        teamDialogue([[lineup().find(Boolean),'我看到了新名单。下次开团前再确认一下补位。']]);
         drawGroupSettings();
       }
     },'plain qo-danger');
@@ -283,7 +291,9 @@ function initQo() {
     if(!member || !runQoTalk(member,button.dataset.qoTalk)) return;
     const request=qoRequests.get('support:'+member.name);
     if(request?.state==='pending' && button.dataset.qoTalk==='listen') request.state='accepted';
-    addMessage(currentThread,$('#calendar-feedback').textContent,false);
+    const listened=button.dataset.qoTalk==='listen';
+    addMessage(currentThread,listened?'先缓一缓。刚才哪里让你最难受，我们慢慢说。':'你刚才有几个处理做得很好。下一把继续按自己的节奏来。');
+    appendChatRows(currentThread,[[member.name[0],member.name,messageClock(campaignHour()),listened?'谢谢你听我说。我好一点了。':'好，我再试试。']]);
     drawQoSessions();
     drawThread();
   };

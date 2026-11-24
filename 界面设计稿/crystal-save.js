@@ -16,7 +16,7 @@ function captureCampaign(){
       candidates:[...candidateFiles.values()],joined:[...joined.values()],backup:backupMember?.name??null,
       recruitedStart,starters:[...selectedStarters],
       qo:{nicknames:[...qoNicknames],requests:[...qoRequests.values()],removedVeterans:[...removedVeterans],unread:[...qoUnread],sort:$('#qo-sort').value},
-      posts:boards.recruit,messages:threads,commands:commandLog}
+      posts:boards.recruit,messages:threads,commands:commandLog,notices:resultNotices}
   };
 }
 function validateCampaign(save){
@@ -29,6 +29,9 @@ function validateCampaign(save){
   if(!Number.isSafeInteger(c.attempts)||c.attempts<0||!Number.isSafeInteger(c.revision)||c.revision<1||
     !Number.isInteger(c.best)||c.best<0||c.best>22||typeof c.clear!=='boolean'||typeof d.calendar.finished!=='boolean'||
     d.commands.some(msg=>typeof msg!=='string'))throw new Error('挑战记录损坏。');
+  const validNotice=notice=>notice&&['source','title','detail','time'].every(key=>typeof notice[key]==='string');
+  const validChatRow=row=>Array.isArray(row)&&row.length===4&&row.every(value=>typeof value==='string');
+  if(d.notices!==undefined&&(!Array.isArray(d.notices)||d.notices.some(notice=>!validNotice(notice))))throw new Error('通知记录无效。');
   if(c.session!==undefined&&(!c.session||!Number.isInteger(c.session.day)||c.session.day<8||c.session.day>21||
     !recruitEndHours.includes(c.session.end)||!recruitEndHours.includes(c.session.originalEnd)||
     !Number.isInteger(c.session.elapsed)||c.session.elapsed<0||!Number.isInteger(c.session.nextDecision)||
@@ -64,7 +67,7 @@ function validateCampaign(save){
     ))))throw new Error('队伍名单无效。');
   if(Object.entries(d.messages).some(([key,rows])=>
     (!['team','backup'].includes(key)&&!key.startsWith('dm:'))||!Array.isArray(rows)||
-    rows.some(row=>!Array.isArray(row)||row.length!==4||row.some(value=>typeof value!=='string'))))throw new Error('会话记录无效。');
+    rows.some(row=>!validChatRow(row))))throw new Error('会话记录无效。');
   if(qo?.unread!==undefined&&(!Array.isArray(qo.unread)||qo.unread.some(row=>!Array.isArray(row)||row.length!==2||
     typeof row[0]!=='string'||!Object.hasOwn(d.messages,row[0])||!Number.isSafeInteger(row[1])||row[1]<1||row[1]>d.messages[row[0]].length)))throw new Error('QO 未读记录无效。');
   if(qo?.sort!==undefined&&!['default','unread'].includes(qo.sort))throw new Error('QO 会话排序无效。');
@@ -92,7 +95,10 @@ function validateCampaign(save){
   const log=c.last;
   if(log&&(!Array.isArray(log.names)||log.names.length!==8||!Array.isArray(log.steps)||!log.steps.length||
     log.steps.some(s=>!s||phases[s.p]?.[s.i]!==s.key||!Number.isInteger(s.slot)||s.slot<0||s.slot>7||(s.work&&!Array.isArray(s.work)))))throw new Error('战报无效。');
+  if(log&&((log.pendingNotices!==undefined&&(!Array.isArray(log.pendingNotices)||log.pendingNotices.some(notice=>!validNotice(notice))))||
+    (log.pendingChat!==undefined&&(!Array.isArray(log.pendingChat)||log.pendingChat.some(row=>!validChatRow(row))))))throw new Error('待播报的战斗结算无效。');
   const normalized=structuredClone(save);
+  if(d.notices===undefined)migrateLegacyNotices(normalized.data);
   normalized.data.campaign.gil??=0;
   if(c.discovery===undefined){
     const reached=Math.max(c.best,log?.steps.length??0);
@@ -103,6 +109,21 @@ function validateCampaign(save){
   delete normalized.data.campaign.call;
   normalized.data.commands=normalized.data.commands.filter(msg=>!/^提醒(?:换坦|转火)(?:（下把）)?$/.test(msg));
   return normalized;
+}
+function migrateLegacyNotices(data){
+  const migrated=[];
+  const rows=data.messages.team;
+  const unread=data.qo?.unread?.find(([thread])=>thread==='team');
+  const unreadStart=rows.length-(unread?.[1]??0);
+  data.messages.team=rows.filter((row,index)=>{
+    const notice=legacyNotice(row);
+    if(!notice)return true;
+    migrated.push(notice);
+    if(unread&&index>=unreadStart)unread[1]--;
+    return false;
+  });
+  if(unread&&unread[1]===0)data.qo.unread=data.qo.unread.filter(item=>item!==unread);
+  data.notices=migrated.reverse();
 }
 function restoreCampaign(save){
   const {data:d}=validateCampaign(save);
@@ -129,6 +150,8 @@ function restoreCampaign(save){
   $('#qo-sort').value=d.qo?.sort??'default';
   commandLog.splice(0,commandLog.length,...d.commands);
   for(const msg of commandLog.slice(0,8).reverse())appendCookEvent('指挥 · '+msg);
+  resetNotices(d.notices);
+  publishRaidMessages(campaign.last,false);
   drawThread();syncLineup();drawForum();
 }
 function transact(key,edit){
@@ -179,9 +202,11 @@ function enterCampaign(mode){
   if(mode==='continue'&&!slots.has(selectedSlot)&&legacySlots.has(selectedSlot)){location.href='../index.html?classic&slot='+selectedSlot;return false;}
   if(mode==='continue'&&!slots.has(selectedSlot))return false;
   if(mode==='new'&&slots.has(selectedSlot)&&!confirm('在当前槽位开始新挑战？已有进度将存为上一份。'))return false;
-  if(mode==='continue')restoreCampaign(slots.get(selectedSlot).head);
+  const saved=mode==='continue'?slots.get(selectedSlot).head:null;
+  const requiresNoticeSave=saved&&(saved.data.notices===undefined||saved.data.campaign.last?.pendingNotices||saved.data.campaign.last?.pendingChat);
+  if(saved)restoreCampaign(saved);
   else {campaign=newCampaign();resetScenario({day:1,hour:10,finished:false}, true);commandLog.length=0;}
-  runningCampaign=true;lastWritten=mode==='continue'?JSON.stringify(captureCampaign().data):'';persistCrystal();
+  runningCampaign=true;lastWritten=saved&&!requiresNoticeSave?JSON.stringify(captureCampaign().data):'';persistCrystal();
   if(mode==='continue'&&storageDB){const slot=selectedSlot;saveQueue=saveQueue.then(()=>transact('crystal-active',()=>slot)).catch(()=>toast('无法记住最近使用的槽位。'));}
   return true;
 }

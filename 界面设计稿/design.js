@@ -15,7 +15,6 @@ const opened = new Set();
 const appWindows = new Map();
 const windowStack = [];
 let activeApp = null;
-let toastTimer;
 const daySlots = [10, 12, 14, 16, 18, 20, 22, 24];
 const recruitEndHours = daySlots.map(hour => hour + 2);
 const defaultAvailability = [20,22,24];
@@ -133,14 +132,6 @@ function showApp(key) {
   if (key === 'cook' && playingCrystal) showRaidBroadcast();
   if (key === 'qo') { readQoCurrent();drawQoSessions(); drawThread(); }
   frame.querySelector('.window-title').focus({ preventScroll: true });
-}
-
-function toast(message) {
-  const node = $('#toast');
-  node.textContent = message;
-  node.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { node.hidden = true; }, 2700);
 }
 
 $('#choose-mode').addEventListener('click', () => showPage('selection'));
@@ -326,7 +317,7 @@ function changePressure(member, amount, at) {
   const result = pressureResults[mood];
   const trait = result.traits[Math.floor(randomValue() * result.traits.length)];
   pressures.set(member.name, { ...state, value: result.reset, until: at + 48, mood, traits: [...new Set([...state.traits, trait])] });
-  const check = { name: member.name, role: member.role, mood, label: result.label, trait };
+  const check = { name: member.name, role: member.role, mood, label: result.label, trait, at };
   pressureChecks.push(check);
   queueResolveFilm(check);
 }
@@ -398,18 +389,22 @@ function relationshipPairs(members) {
   return { couples, enemies };
 }
 
-function combatAffinityEvent(result, participants, actor) {
+function combatAffinityEvent(result, participants, actor, at=campaignHour(), log) {
   if (result === 'none') return;
   if (result === 'rescue') {
     const rescuer = actor ?? participants[0];
     const observers = [...rosterMembers().values()].filter(member => member.name !== rescuer.name);
     observers.forEach(member => changeAffinity(member, rescuer, 6));
     latestAffinityEvent = `${rescuer.name}成功救场，其他 ${observers.length} 名队员对其好感 +6。`;
+    notifyResult('队务','救场后好感上升',latestAffinityEvent,at,log);
+    teamDialogue([[participants.find(member=>member!==rescuer),`${displayName(rescuer)}，刚才那下补得及时，谢了。`]],at,log);
   } else if (result === 'injury') {
     const target = actor ?? participants[4];
     const healers = participants.filter(member => member.role.startsWith('H') && member.name !== target.name);
     const changes = healers.map(healer => changeAffinity(healer, target, -5));
     latestAffinityEvent = `${target.name}吃到意外伤害。${changes.join('、')}。`;
+    notifyResult('队务','意外受伤',latestAffinityEvent,at,log);
+    teamDialogue([[healers[0],`${displayName(target)}，那一下我得临时抬你。下把提前挪一步试试。`]],at,log);
   } else {
     const first = participants[Math.floor(randomValue() * participants.length)];
     const peers = participants.filter(member => member.name !== first.name);
@@ -418,13 +413,16 @@ function combatAffinityEvent(result, participants, actor) {
       changeAffinity(first, second, 4);
       changeAffinity(second, first, 4);
       latestAffinityEvent = `${first.name}与${second.name}配合顺利，好感各 +4。`;
+      teamDialogue([[first,'刚才那段配合得挺顺，下把也按这个来。'],[second,'行，我记住那个点了。']],at,log);
     } else {
       latestAffinityEvent = `语音沟通出现摩擦。${changeAffinity(first, second, -6)}。`;
+      teamDialogue([[first,'刚才那句我没听明白，你是让我先动吗？'],[second,'我是说等我报点，没说清楚，下把重来。']],at,log);
     }
+    notifyResult('队务','语音互动',latestAffinityEvent,at,log);
   }
 }
 
-function settleRelationshipPressure(participants, start, ticks = 4) {
+function settleRelationshipPressure(participants, start, ticks = 4, log) {
   const { couples, enemies } = relationshipPairs(participants);
   if (!couples.length && !enemies.length) return '';
   const coupled = new Set(couples.flat().map(member => member.name));
@@ -438,14 +436,19 @@ function settleRelationshipPressure(participants, start, ticks = 4) {
   }
   if (couples.length) {
     const [first, second] = couples[0];
-    const interaction = randomValue() < 0.5 ? '互相提醒了一次走位。' : '希望下一次继续同组。';
-    addMessage('team', `${first.name}和${second.name}${interaction}`);
+    const reminder=randomValue()<.5?'刚才那段你跟着我走就好。':'这段我们下把还一起处理吧。';
+    teamDialogue([[first,reminder],[second,'好，我留意你那边。']],start+ticks/2,log);
   }
   if (enemies.length) {
     const [first, second] = enemies[0];
-    const interaction = randomValue() < 0.5 ? '为报点顺序发生了争执。' : '希望暂时由第三人转述交接。';
-    addMessage('team', `${first.name}和${second.name}${interaction}`);
+    const complaint=randomValue()<.5?'报点能不能一人说完再接？':'这段先让别人转述口令吧。';
+    teamDialogue([[first,complaint],[second,'可以，等分工写清楚再打。']],start+ticks/2,log);
   }
+  const lines=participants.map(member=>{
+    const delta=ticks*((couples.length?(coupled.has(member.name)?-2:2):0)+(conflicted.has(member.name)?6:0));
+    return delta?`${member.name} ${delta>0?'+':''}${delta}`:'';
+  }).filter(Boolean);
+  if(lines.length)notifyResult('队务','同场关系压力',lines.join(' · '),start+ticks/2,log);
   return ` 同场关系 · ${couples.length} 对 CP、${enemies.length} 对仇人。`;
 }
 
@@ -602,6 +605,7 @@ function advanceCalendar(action, post = action === 'promote' ? promotionTarget()
     changePressure(member, mode === 'listen' ? -16 : 8, at);
     if (mode === 'encourage') pressures.set(member.name,{...pressureOf(member),encouragedUntil:at+24});
     feedback = `已消耗两小时与${displayName(member)}对谈，压力 ${oldPressure} → ${pressureOf(member).value}。`+(mode==='encourage'?' 实战发挥提高 10%，持续 24 游戏小时。':'');
+    notifyResult('队务',`${displayName(member)} · ${mode==='listen'?'安抚':'对谈'}完成`,feedback,at);
   }
   if (calendar.hour === daySlots.at(-1)) {
     if (calendar.day === 21) {
@@ -615,7 +619,13 @@ function advanceCalendar(action, post = action === 'promote' ? promotionTarget()
     }
   } else calendar.hour += 2;
   const after = lineup().filter(gameOnline).length;
-  if (before === 0 && after > 0) feedback += ` ${after} 席已到场，等待指挥。`;
+  if (before === 0 && after > 0) {
+    feedback += ` ${after} 席已到场，等待指挥。`;
+    if(!fromRaid){
+      const present=lineup().filter(gameOnline);
+      teamDialogue([[present[0],'我上线了，先去开荒语音等。'],[present[1],'我也到了。人齐以后喊一声。']],absoluteHour());
+    }
+  }
   if (before > 0 && after === 0) feedback += ' 到约定结束时间，队员已离开游戏与语音。';
   if (pressureChecks.length > checkCount) feedback += ` ${pressureChecks.length - checkCount} 次压力检定可在 Cook 查看。`;
   $('#calendar-feedback').textContent = feedback;
@@ -653,15 +663,10 @@ function chip(parent, role) {
   return element(parent, 'span', role, `role-chip${className}`);
 }
 
-function addMessage(thread, text, incoming = true) {
-  if(incoming)receiveQo(thread,['队','队务','刚刚',text]);
-  else {
-    threads[thread] ??= [];
-    threads[thread].push(['经','经理','刚刚',text]);
-  }
-  drawQoBadges();
-  if(opened.has('qo'))drawQoSessions();
-  if (thread === currentThread) drawThread();
+function addMessage(thread,text) {
+  threads[thread]??=[];
+  threads[thread].push(['经','经理',messageClock(campaignHour()),text]);
+  refreshChat(thread);
 }
 
 function drawThread() {
@@ -670,7 +675,7 @@ function drawThread() {
   const team = currentThread === 'team';
   const member = directMember();
   $('#qo-thread-title').textContent = team ? '炎帝陵固定队' : member ? displayName(member) : currentThread === 'backup' ? '雀斑' : currentThread.slice(3);
-  $('#qo-thread-note').textContent = team ? '队伍群聊 · 预定晚间开荒' : member ? `私聊 · ${member.role} · 压力 ${pressureOf(member).value}` : '历史私聊';
+  $('#qo-thread-note').textContent = team ? `队伍群聊 · 预约 ${timeWindowText(appointmentStart,appointmentEnd)}` : member ? `私聊 · ${member.role} · 压力 ${pressureOf(member).value}` : '历史私聊';
   $('#qo-ready').hidden = !team;
   $('#qo-pin').hidden = !team;
   for (const [avatar, name, time, text] of threads[currentThread] ?? []) {
@@ -748,7 +753,7 @@ $('#qo-compose').addEventListener('submit', event => {
   const input = $('#qo-message');
   const text = input.value.trim();
   if (!text) return;
-  addMessage(currentThread, text, false);
+  addMessage(currentThread,text);
   input.value = '';
   input.focus();
 });
@@ -761,9 +766,10 @@ $('#qo-confirm').addEventListener('click', () => {
   else if (rosterSize() < rosterLimit) { backupMember = reserve; joined.set(reserve.name, reserve); }
   else { toast(`队伍已满 ${rosterLimit} 人，需要空出一个名额。`); return; }
   const message = backupMember ? `${backupMember.name}已确认补 H2，开怪前和澄灯对一次减伤。` : `已撤销${previous.name}的首发安排，H2 回到待确认。`;
-  addMessage('team', message);
+  if(backupMember)recruitmentDialogue(backupMember);
+  else teamDialogue([[previous,'这次先退回候补，有需要再叫我。']]);
   syncLineup();
-  toast(message);
+  notifyResult('队务','H2 首发调整',message);
 });
 
 const channelLabels = { raid: '开荒语音', review: '双治疗复盘', reserve: '候补待命' };
@@ -924,6 +930,7 @@ let currentBoard = 'news';
 let postIndex = 0;
 
 function resetScenario(next, empty = false) {
+  resetNotices();
   if(typeof resetCookPlayback==='function')resetCookPlayback();
   if(typeof resetGuide==='function')resetGuide();
   calendar = next;
@@ -1038,18 +1045,21 @@ function renderPromotion() {
 function updateRecruitments() {
   const now=Math.round(campaignHour()*60);
   let updated=false;
+  const firstBatches=[];
   for (const post of activePosts()) {
     const roles = recruitSeats(post);
     while (!calendar.finished && Math.round(post.due*60) <= now) {
       const count = 2 + Math.floor(randomValue() * 4);
       const offset = post.batches.reduce((total,batch)=>total+batch.length,0);
       const candidates = Array.from({ length: count }, (_,i) => createCandidate(post, roles[(offset+i)%roles.length]));
+      if(!post.batches.length)firstBatches.push(`${post.title} · ${roles.join(' / ')} · ${count} 人`);
       post.batches.push(candidates);
       post.batchIndex = post.batches.length - 1;
       post.due += post.duration ?? 6;
       updated=true;
     }
   }
+  if(firstBatches.length)notifyResult('招募','首批候选已到',firstBatches.join('\n'));
   if ((updated||calendar.finished) && currentBoard === 'recruit') drawForum();
 }
 
@@ -1057,10 +1067,10 @@ function enroll(candidate) {
   if (calendar.finished || joined.has(candidate.name) || rosterSize() >= rosterLimit) return;
   joined.set(candidate.name, candidate);
   if (!recruitedStart && !backupMember && candidate.role === 'H2') backupMember = candidate;
-  addMessage('team', `NGE 招募：${candidate.role} ${candidate.name}已入队。`);
+  recruitmentDialogue(candidate);
   syncLineup();
   drawForum();
-  toast(`${candidate.name}已入队，队伍 ${rosterSize()}/${rosterLimit} 人。`);
+  notifyResult('招募',`${candidate.role} ${candidate.name} 已入队`,`队伍 ${rosterSize()}/${rosterLimit} 人 · 首发 ${readyCount()}/8 席`);
 }
 
 function addRecruitCountdown(parent,index,compact=false) {

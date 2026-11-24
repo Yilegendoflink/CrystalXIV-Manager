@@ -10,6 +10,14 @@ const incidentRules={
   message:{title:'群聊里的误会',story:'一条模棱两可的回复被理解成了嘲讽，两人来找经理说明情况。',affinity:8,pressure:9},
   schedule:{title:'为排班争了起来',story:'两人对新排班的解释不同，开始质疑对方是否愿意配合。',affinity:8,pressure:10},
 };
+const incidentLines={
+  wipe:['刚才那下到底谁来喊？我完全没听见口令。','我喊了，但好几个人同时在说。先看一下这段录像吧。'],
+  handoff:['不是说等我接住再走吗？你刚才先动了。','我以为你已经接过去了。下把你确认完再喊我。'],
+  couple:['你有意见可以前面跟我说，别当着大家的面说我。','我刚才急了。我们先缓一下，等打完再聊。'],
+  enemy:['上次这个交接就没说清，怎么还是老样子？','别翻上次的事。把这次谁先动说清楚就行。'],
+  message:['你刚才那个「行吧」是在说我吗？','我在回上面的时间，没在说你。可能我回得太短了。'],
+  schedule:['怎么又改时间？我之前说过那段不方便。','我以为那只是候选时段。我们等经理把最终时间定下来吧。'],
+};
 
 function pullEnergyCost(minutes){return 4+minutes*25/60;}
 function wipeStress(member,repeated){return repeated&&!pressureOf(member).traits.includes('逆风耐心')?20:8;}
@@ -26,18 +34,21 @@ function incidentParticipants(team){
 }
 const pickMember=items=>items[Math.floor(combatRandom()*items.length)];
 
-function openTeamIncident(kind,members,at){
+function openTeamIncident(kind,members,at,log){
   const rule=incidentRules[kind],[first,second]=members;
   campaign.incident={kind,names:members.map(member=>member.name)};
   campaign.lastIncidentAttempt=campaign.attempts;
-  changeAffinity(first,second,-rule.affinity);changeAffinity(second,first,-rule.affinity);
+  const pressureBefore=members.map(member=>pressureOf(member).value);
+  const affinityChanges=[changeAffinity(first,second,-rule.affinity),changeAffinity(second,first,-rule.affinity)];
   members.forEach(member=>changePressure(member,rule.pressure,at));
   latestAffinityEvent=`${first.name}和${second.name}发生「${rule.title}」，双向好感各降 ${rule.affinity}。`;
-  addMessage('team',`${latestAffinityEvent} ${rule.story} 两人各增加 ${rule.pressure} 压力。`);
+  const pressureChanges=members.map((member,i)=>`${member.name} ${pressureBefore[i]}→${pressureOf(member).value}`);
+  notifyResult('队务',rule.title,`好感 · ${affinityChanges.join('，')}\n压力 · ${pressureChanges.join('，')}`,at,log);
+  teamDialogue([[first,incidentLines[kind][0]],[second,incidentLines[kind][1]]],at,log);
   return `${rule.title} · ${first.name} / ${second.name}`;
 }
 
-function rollRaidIncident(team,final,repeated,at){
+function rollRaidIncident(team,final,repeated,at,log){
   const session=sessionForToday();
   if(session?.incidentRaised||teamIncident()||campaign.attempts<2||
     (campaign.lastIncidentAttempt!==undefined&&campaign.attempts-campaign.lastIncidentAttempt<3))return null;
@@ -47,11 +58,11 @@ function rollRaidIncident(team,final,repeated,at){
   const likelihood=.26+(repeated ? .16 : 0)+(highPressure ? .12 : 0)+(hasRelatedPair ? .12 : 0);
   if(combatRandom()>=likelihood)return null;
   if(session)session.incidentRaised=true;
-  if(enemies.length&&combatRandom()<.7)return openTeamIncident('enemy',pickMember(enemies),at);
-  if(couples.length&&combatRandom()<.7)return openTeamIncident('couple',pickMember(couples),at);
+  if(enemies.length&&combatRandom()<.7)return openTeamIncident('enemy',pickMember(enemies),at,log);
+  if(couples.length&&combatRandom()<.7)return openTeamIncident('couple',pickMember(couples),at,log);
   const responsible=team[final.slot];
   return openTeamIncident(final.key==='chain'||final.key==='cone'?'handoff':'wipe',
-    [responsible,pickMember(team.filter(member=>member!==responsible))],at);
+    [responsible,pickMember(team.filter(member=>member!==responsible))],at,log);
 }
 
 function rollManagementIncident(){
@@ -79,14 +90,17 @@ function mediateTeamIncident(mode){
   const affinityRecovery=inRaid?12:15,pressureRecovery=inRaid?18:24;
   const [first,second]=incident.members;
   delete campaign.incident;
-  changeAffinity(first,second,affinityRecovery);changeAffinity(second,first,affinityRecovery);
+  const pressureBefore=incident.members.map(member=>pressureOf(member).value);
+  const affinityChanges=[changeAffinity(first,second,affinityRecovery),changeAffinity(second,first,affinityRecovery)];
   const at=campaignHour()+minutes/60;
   for(const member of incident.members)changePressure(member,-pressureRecovery,at);
   if(inRaid){ensureRaidSession();advanceRaidMinutes(minutes);}
   else advanceCalendar('mediate');
   latestAffinityEvent=`${first.name}和${second.name}完成调解，双向好感各 +${affinityRecovery}，压力各 −${pressureRecovery}。`;
   const message=`调解用时 ${inRaid?'15 分钟':'2 小时'} · ${latestAffinityEvent}`;
-  addMessage('team',message);
+  const pressureChanges=incident.members.map((member,i)=>`${member.name} ${pressureBefore[i]}→${pressureOf(member).value}`);
+  notifyResult('队务','调解完成',`用时 ${inRaid?'15 分钟':'2 小时'}\n好感 · ${affinityChanges.join('，')}\n压力 · ${pressureChanges.join('，')}`,at);
+  teamDialogue([[first,'刚才我的语气也有点冲。下次我先把话说完整。'],[second,'好，这事先翻篇。我们下把照说好的处理。']],at);
   appendCookEvent(message);
   renderCalendar();drawVoice();persistCrystal();
 }
@@ -95,20 +109,26 @@ function restRaidTeam(){
   if(!playingCrystal){
     const message='短休 · 10 分钟';
     commandLog.unshift(message);
-    appendCookEvent('指挥 · '+message);addMessage('team',`Cook 指挥：${message}。`);
+    appendCookEvent('指挥 · '+message);teamDialogue([[lineup().find(Boolean),'我去倒杯水，回来就位。']]);
     toast('已记录提示，并同步到 QO。');
     return;
   }
   if(!canUseRaidBreak(shortRestMinutes))return;
   ensureRaidSession();
   const at=campaignHour()+shortRestMinutes/60;
-  for(const member of lineup().filter(gameOnline)){
-    energy.set(member.name,Math.min(100,energyOf(member)+shortRestEnergy));
+  const members=lineup().filter(gameOnline);
+  const recovered=[],relieved=[];
+  for(const member of members){
+    const energyBefore=energyOf(member),pressureBefore=pressureOf(member).value;
+    energy.set(member.name,Math.min(100,energyBefore+shortRestEnergy));
     changePressure(member,-shortRestPressure,at);
+    recovered.push(energyOf(member)-energyBefore);relieved.push(pressureBefore-pressureOf(member).value);
   }
   advanceRaidMinutes(shortRestMinutes);
   const message=`全队短休 · ${shortRestMinutes} 分钟 · 精力最多恢复 ${shortRestEnergy}，压力 −${shortRestPressure}。`;
-  commandLog.unshift(message);appendCookEvent(message);addMessage('team',message);
+  commandLog.unshift(message);appendCookEvent(message);
+  notifyResult('战报','全队短休',`用时 ${shortRestMinutes} 分钟 · 精力恢复 ${effectRange(recovered)} · 压力减少 ${effectRange(relieved)}`,at);
+  teamDialogue([[members[0],'我去接杯水，回来就位。'],[members[2],'好，我顺便把刚才的减伤轴看一眼。']],at);
   renderCalendar();drawVoice();persistCrystal();
 }
 $('#cook-short-rest').onclick=restRaidTeam;

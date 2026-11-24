@@ -250,7 +250,6 @@ dialog h2{font-size:21px;margin-bottom:4px}dialog p{color:var(--muted);font-size
 .relationship-table [data-kind="cp"] td:last-child{color:#723451;font-weight:750}
 .relationship-table [data-kind="enemy"] td:last-child{color:#993b2b;font-weight:750}
 .taskbar{z-index:100}.crystal-menu{z-index:101}
-.toast{position:fixed;bottom:56px;right:13px;z-index:102;background:#302836;color:#f9e4c7;border:1px solid #b78b73;padding:7px 10px;max-width:calc(100% - 26px);font-size:13px}
 @media(min-width:741px){.app-window[data-app="cook"]:not(.is-maximized){height:min(565px,calc(100% - 145px))}.app-window[data-app="nge"]:not(.is-maximized){height:min(510px,calc(100% - 145px))}}
 @media(max-width:1000px){.voice-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.qo{grid-template-columns:147px minmax(0,1fr) 171px}.launch{width:calc(100% - 54px)}}
 @media(max-width:740px){
