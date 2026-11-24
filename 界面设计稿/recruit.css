@@ -13,6 +13,7 @@
 .recruit-window-controls{display:grid;grid-template-columns:minmax(0,1fr) 14px minmax(0,1fr);align-items:end;gap:3px}
 .recruit-form .recruit-window-controls label{font-size:11px;color:#6a5149}
 .recruit-window-controls>span{height:33px;display:grid;place-items:center;color:#8e5748}
+#recruit-availability-hint{margin-top:3px;color:#695047;font-size:11px}
 .recruit-role-fields{min-width:0;margin:0;border:1px solid #b99a83;padding:8px;background:#f9eedf}
 .recruit-role-fields legend,.recruit-trait-fields legend{font-size:13px;font-weight:750;color:#63463c;padding:0 4px}
 #recruit-role-options{display:grid;grid-template-columns:2fr 2fr 4fr;gap:8px}

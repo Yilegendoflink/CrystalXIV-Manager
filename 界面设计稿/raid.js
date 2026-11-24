@@ -51,8 +51,13 @@ const mechanicSeconds=(key,p)=>key==='roar'?20:key==='cone'?6+2*p:key==='end'?0:
 const maximumPullMinutes=2+Math.ceil(phases.reduce((total,phase,p)=>total+phase.reduce((seconds,key)=>seconds+mechanicSeconds(key,p),0),0)/60);
 
 function sessionForToday(){return campaign.session?.day===calendar.day?campaign.session:null;}
+function sharedAttendanceEnd(){
+  const team=lineup();
+  return daySlots.find(hour=>hour>=calendar.hour&&!team.every(member=>available(member,hour)))??recruitEndHours.at(-1);
+}
 function remainingRaidMinutes(){
-  return Math.max(0,(sessionForToday()?.end??appointmentEnd)*60-calendar.hour*60-campaign.minutes);
+  const end=Math.min(sessionForToday()?.end??appointmentEnd,sharedAttendanceEnd());
+  return Math.max(0,(end-calendar.hour)*60-campaign.minutes);
 }
 function raidClockLabel(){
   const minutes=calendar.hour*60+campaign.minutes,h=Math.floor(minutes/60);
@@ -100,8 +105,7 @@ function canUseRaidBreak(minutes){
 }
 function canDelayShift(){
   const session=sessionForToday();
-  if(!session||session.end>=26)return false;
-  return lineup().every(member=>member && (member.hours??[20,22,24]).includes(session.end));
+  return Boolean(session&&session.end<sharedAttendanceEnd());
 }
 function refreshCookControls(){
   const session=sessionForToday();
@@ -131,8 +135,9 @@ for(const button of $$('[data-shift]'))button.onclick=()=>{
   if(choice==='early'){finishShift('经理决定提前收队。');return;}
   if(choice==='normal'&&remainingRaidMinutes()<maximumPullMinutes){
     const remaining=remainingRaidMinutes();
+    const byAttendance=sharedAttendanceEnd()<session.end;
     if(remaining)advanceRaidMinutes(remaining);
-    if(!session.ended)finishShift('已到约定时间，八席按计划收队。');
+    if(!session.ended)finishShift(byAttendance?'全队共同出勤时间已结束，队伍收队。':'已到约定时间，八席按计划收队。');
     else {renderCalendar();drawVoice();persistCrystal();}
     return;
   }

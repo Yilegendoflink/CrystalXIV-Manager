@@ -35,7 +35,7 @@ function renderManagerClock(){
 }
 
 function nextRaidHour(){
-  return Math.max(7*24+20,(calendar.day-1)*24+(calendar.hour<20?20:44));
+  return Math.max(7*24+appointmentStart,(calendar.day-1)*24+appointmentStart+(calendar.hour<appointmentStart?0:24));
 }
 
 function nextOfficeHour(hour){

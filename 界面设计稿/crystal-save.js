@@ -11,7 +11,7 @@ const recruitSurchargeByMinimum = new Map([
 function captureCampaign(){
   return {
     game:'ff-crystal',version:1,time:new Date().toISOString(),
-    data:{campaign,calendar,energy:[...energy],pressures:[...pressures],pressureChecks,previousWipe,appointmentEnd,
+    data:{campaign,calendar,energy:[...energy],pressures:[...pressures],pressureChecks,previousWipe,appointmentStart,appointmentEnd,
       affinities:[...affinityValues].map(([name,row])=>[name,[...row]]),latestAffinityEvent,
       candidates:[...candidateFiles.values()],joined:[...joined.values()],backup:backupMember?.name??null,
       recruitedStart,starters:[...selectedStarters],
@@ -23,14 +23,14 @@ function validateCampaign(save){
   const d=save?.data,c=d?.campaign;
   if(save?.game!=='ff-crystal'||save.version!==1||!c||!Number.isInteger(c.seed)||!Number.isInteger(c.minutes)||c.minutes<0||c.minutes>=120||
      !Number.isInteger(d.calendar?.day)||d.calendar.day<1||d.calendar.day>21||![...daySlots,26].includes(d.calendar.hour)||
-     ![22,24,26].includes(d.appointmentEnd)||!c.plan||!c.mastery||
+     !validActivityWindow(d.appointmentStart??20,d.appointmentEnd)||!c.plan||!c.mastery||
      !['energy','pressures','pressureChecks','affinities','candidates','joined','posts','commands'].every(k=>Array.isArray(d[k]))||
      !Array.isArray(d.messages?.team)||!Array.isArray(d.messages?.backup))throw new Error('存档格式或版本不兼容。');
   if(!Number.isSafeInteger(c.attempts)||c.attempts<0||!Number.isSafeInteger(c.revision)||c.revision<1||
     !Number.isInteger(c.best)||c.best<0||c.best>22||typeof c.clear!=='boolean'||typeof d.calendar.finished!=='boolean'||
     d.commands.some(msg=>typeof msg!=='string'))throw new Error('挑战记录损坏。');
   if(c.session!==undefined&&(!c.session||!Number.isInteger(c.session.day)||c.session.day<8||c.session.day>21||
-    ![22,24,26].includes(c.session.end)||![22,24,26].includes(c.session.originalEnd)||
+    !recruitEndHours.includes(c.session.end)||!recruitEndHours.includes(c.session.originalEnd)||
     !Number.isInteger(c.session.elapsed)||c.session.elapsed<0||!Number.isInteger(c.session.nextDecision)||
     c.session.nextDecision<120||typeof c.session.decision!=='boolean'||typeof c.session.ended!=='boolean'))throw new Error('开荒时段记录损坏。');
   if(c.discovery!==undefined&&(!c.discovery||Array.isArray(c.discovery)||typeof c.discovery!=='object'||
@@ -42,7 +42,8 @@ function validateCampaign(save){
     const allowed=mechanic&&(parts[3]?supportingJobs[mechanic][Number(parts[3])-1]?.[2]:jobs[mechanic][3]);
     if(!allowed?.includes(slot))throw new Error('攻略职责数据无效。');
   }
-  for(const member of [...d.candidates,...d.joined])if(!member||typeof member.name!=='string'||!seats.some(m=>m.role===member.role))throw new Error('队员档案无效。');
+  for(const member of [...d.candidates,...d.joined])if(!member||typeof member.name!=='string'||!seats.some(m=>m.role===member.role)||
+    (member.hours!==undefined&&(!Array.isArray(member.hours)||member.hours.some(hour=>!daySlots.includes(hour)))))throw new Error('队员档案无效。');
   const qo=d.qo;
   if(qo!==undefined && (!qo || !Array.isArray(qo.removedVeterans)||new Set(qo.removedVeterans).size!==qo.removedVeterans.length||
     qo.removedVeterans.some(name=>!seats.some(member=>member.name===name))||
@@ -75,7 +76,7 @@ function validateCampaign(save){
     if(!Array.isArray(roles)||!roles.length||new Set(roles).size!==roles.length||roles.some(role=>!Object.hasOwn(recruitmentNames,role))||!Number.isFinite(post.due)||post.due<0||
       !Array.isArray(post.batches)||post.batches.some(batch=>!Array.isArray(batch)||batch.some(m=>!m||!d.candidates.some(c=>c.name===m.name&&roles.includes(c.role))))||
       (post.batches.length&&(!Number.isInteger(post.batchIndex)||!post.batches[post.batchIndex])))throw new Error('招募记录无效。');
-    if(post.endHour!==undefined&&!validRecruitWindow(post.hour,post.endHour))throw new Error('招募档期无效。');
+    if(post.endHour!==undefined&&!validActivityWindow(post.hour,post.endHour))throw new Error('招募档期无效。');
     if(post.duration!==undefined&&(
       !daySlots.includes(post.hour)||!Array.isArray(post.traits)||![0,3].includes(post.traits.length)||
       new Set(post.traits).size!==post.traits.length||post.traits.some(trait=>!innateTraits.includes(trait))||
@@ -105,8 +106,8 @@ function restoreCampaign(save){
   for(const entry of d.pressures)pressures.set(...entry);
   pressureChecks.push(...d.pressureChecks);
   affinityValues.clear();for(const [name,row] of d.affinities)affinityValues.set(name,new Map(row));
-  latestAffinityEvent=d.latestAffinityEvent;previousWipe=d.previousWipe;appointmentEnd=d.appointmentEnd;
-  $('#session-end').value=String(appointmentEnd);
+  latestAffinityEvent=d.latestAffinityEvent;previousWipe=d.previousWipe;appointmentStart=d.appointmentStart??20;appointmentEnd=d.appointmentEnd;
+  applyAppointmentWindow();
   for(const c of d.candidates)candidateFiles.set(c.name,c);
   for(const m of d.joined)joined.set(m.name,candidateFiles.get(m.name)??(m.name===reserve.name?reserve:m));
   backupMember=joined.get(d.backup)??null;

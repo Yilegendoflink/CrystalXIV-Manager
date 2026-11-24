@@ -267,6 +267,7 @@
         <label>帖子标题<input name="title" required maxlength="42" value="炎帝陵固定队招募"></label>
         <fieldset class="recruit-window"><legend>开荒档期 <small id="recruit-window-length"></small></legend>
           <div class="recruit-window-controls"><label>开始时间<select name="startHour" required></select></label><span aria-hidden="true">→</span><label>结束时间<select name="endHour" required></select></label></div>
+          <p id="recruit-availability-hint"></p>
         </fieldset>
       </div>
       <fieldset class="recruit-role-fields"><legend>招募席位</legend><div id="recruit-role-options"></div><footer><p>每批共 2–5 人，已选席位轮流出候选。</p><button type="button" id="recruit-all-roles" class="plain">全选</button></footer></fieldset>
@@ -283,7 +284,8 @@
     <p id="calendar-phase"></p>
     <ol id="calendar-slots" class="calendar-slots" aria-label="本活动日的八个时段"></ol>
     <div class="calendar-settings">
-      <label>晚间预约<select id="session-end"><option value="24">20:00–24:00</option><option value="22">20:00–22:00</option><option value="26">20:00–次日 02:00</option></select></label>
+      <label>开荒预约开始<select id="session-start"></select></label>
+      <label>开荒预约结束<select id="session-end"></select></label>
       <label>挑战结果样例<select id="raid-outcome"><option value="progress">推进一个新机制</option><option value="fail">在火狱之楔团灭一把</option><option value="repeat">连续四把卡火狱之楔</option></select></label>
       <label class="relationship-setting">战斗关系事件样例<select id="raid-relationship"><option value="none">不指定额外事件</option><option value="rescue">白脊救场</option><option value="injury">静弦吃到意外伤害</option><option value="random">随机队友互动</option></select></label>
       <label>对谈成员<select id="talk-member"></select></label>
@@ -293,7 +295,7 @@
     <p id="challenge-note"></p>
     <div class="calendar-actions" aria-label="本时段行动">
       <button type="button" class="plain" data-clock-action="wait">推进 2 小时</button>
-      <button type="button" class="plain" id="fast-forward">快进至下次挑战日 20:00</button>
+      <button type="button" class="plain" id="fast-forward">跳转到下次开荒</button>
       <button type="button" class="plain" id="calendar-recruit">打开 NGE 招募</button>
       <label class="promote-control">招募帖<select id="promote-post"></select></label>
       <button type="button" class="plain" data-clock-action="promote">挂游戏招募 · 2 小时</button>

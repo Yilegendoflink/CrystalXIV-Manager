@@ -4,14 +4,23 @@ const innateTraits = [
   '夜猫子', '情圣', '早起党', '集中两小时', '慢热', '准点主义', '独立复盘', '地图记忆', '听口令', '安静守位',
   '习惯老搭档', '喜新', '稳健手', '抢进度', '开怪先对表', '只听关键句', '乐于带新人', '好胜', '救场本能', '专职型',
   '临时补位派', '公平敏感', '不爱被点名', '气氛担当', '等消息焦虑', '独处充电', '情绪共鸣', '旧队友多', '阶段练习派', '怕准备不足',
+  '无所事事', '时间紧张',
 ];
+const availabilityProfiles = [
+  {periods:1,weight:5,trait:'时间紧张',adjustment:50},
+  {periods:2,weight:10,trait:'时间紧张',adjustment:20},
+  {periods:3,weight:75,trait:null,adjustment:0},
+  ...[5,2,1,1,1].map((weight,index)=>({periods:4+index,weight,trait:'无所事事',adjustment:-30*(index+1)})),
+];
+const availabilityTraits = new Set(availabilityProfiles.map(profile=>profile.trait).filter(Boolean));
+const generalInnateTraits = innateTraits.filter(trait=>!availabilityTraits.has(trait));
 const recruitAttributes = { execution:'执行', coordination:'协作', reaction:'应变', technique:'手法', aptitude:'资质' };
 const recruitGrades = {
   standard: { label: '不低', minimum: 65, extra: 2 },
   high: { label: '偏高', minimum: 90, maximum: 95, extra: 4 },
 };
 
-function rollRecruitAttributes(post, random) {
+function rollRecruitAttributes(post, random, adjustment=0) {
   const high = recruitGrades.high;
   const attribute = post.attribute;
   const minimum = post.minimum ?? 0;
@@ -22,23 +31,19 @@ function rollRecruitAttributes(post, random) {
     [keys[i], keys[j]] = [keys[j], keys[i]];
   }
 
-  // A regular floor applies to a regular attribute. A high requirement uses one of the two strengths.
-  const strengths = keys.filter(key => key !== attribute).slice(0, attribute && minimum >= high.minimum ? 1 : 2);
-  if (attribute && minimum >= high.minimum) strengths.push(attribute);
-
+  let remaining = roll(280, 350)+adjustment;
+  const guaranteedStrength = attribute&&minimum>=high.minimum;
+  const optionalStrengths = Math.min(guaranteedStrength?1:2,Math.floor((remaining-minimum)/high.minimum));
+  const strengths = keys.filter(key=>key!==attribute).slice(0,optionalStrengths);
+  if(guaranteedStrength)strengths.push(attribute);
+  const order = [...strengths,...keys.filter(key=>!strengths.includes(key))];
+  const floor = key=>strengths.includes(key)?Math.max(high.minimum,key===attribute?minimum:0):key===attribute?minimum:0;
+  const ceiling = key=>strengths.includes(key)?high.maximum:high.minimum-1;
   const scores = {};
-  let remaining = roll(280, 350);
-  for (const key of strengths) {
-    scores[key] = roll(key === attribute ? Math.max(minimum, high.minimum) : high.minimum, high.maximum);
-    remaining -= scores[key];
-  }
-  const regular = keys.filter(key => !strengths.includes(key));
-  const floor = key => key === attribute ? minimum : 0;
-  const ceiling = high.minimum - 1;
-  regular.forEach((key, index) => {
-    const later = regular.slice(index + 1);
-    const min = Math.max(floor(key), remaining - later.length * ceiling);
-    const max = Math.min(ceiling, remaining - later.reduce((sum, other) => sum + floor(other), 0));
+  order.forEach((key,index)=>{
+    const later=order.slice(index+1);
+    const min=Math.max(floor(key),remaining-later.reduce((sum,other)=>sum+ceiling(other),0));
+    const max=Math.min(ceiling(key),remaining-later.reduce((sum,other)=>sum+floor(other),0));
     scores[key] = roll(min, max);
     remaining -= scores[key];
   });

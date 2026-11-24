@@ -17,6 +17,7 @@ let activeApp = null;
 let toastTimer;
 const daySlots = [10, 12, 14, 16, 18, 20, 22, 24];
 const recruitEndHours = daySlots.map(hour => hour + 2);
+const defaultAvailability = [20,22,24];
 const timeText = hour => `${String(hour % 24).padStart(2, '0')}:00`;
 const activityTime = hour => `${hour >= 24 ? '次日 ' : ''}${timeText(hour)}`;
 const windowEndText = hour => hour === 24 ? '24:00' : activityTime(hour);
@@ -31,6 +32,7 @@ const pressureChecks = [];
 const affinityValues = new Map();
 let latestAffinityEvent = '';
 let previousWipe = null;
+let appointmentStart = 20;
 let appointmentEnd = 24;
 const pressureResults = {
   faith: { label: '坚定信念', reset: 40, factor: 1.10, traits: ['读秒专注', '带练耐心', '逆风耐心'] },
@@ -289,7 +291,16 @@ function lineup() {
 function readyCount() { return lineup().filter(member => member && member !== seats[3]).length; }
 function readyText() { return `${readyCount()}/8 已确认`; }
 function rosterSize() { return rosterMembers().size; }
-function available(member) { return (member.hours ?? [20, 22, 24]).includes(calendar.hour); }
+function available(member,hour=calendar.hour) { return Boolean(member) && (member.hours ?? defaultAvailability).includes(hour); }
+function availabilityText(member){
+  const hours=daySlots.filter(hour=>available(member,hour)), spans=[];
+  for(const hour of hours){
+    const previous=spans.at(-1);
+    if(previous?.[1]===hour)previous[1]+=2;
+    else spans.push([hour,hour+2]);
+  }
+  return `${hours.length*2} 小时${spans.length?' · '+spans.map(([start,end])=>timeWindowText(start,end)).join(' / '):''}`;
+}
 function energyOf(member) { return energy.get(member.name) ?? 100; }
 function energyLabel(value) { return value === 0 ? '完全疲劳' : value <= 50 ? '疲劳' : '正常'; }
 function pressureOf(member) { return pressures.get(member.name) ?? { value: member.pressure, until: 0, mood: null, traits: [] }; }
@@ -336,7 +347,7 @@ function trialPressure(result, at) {
 
 function duringAppointment() {
   const session=playingCrystal&&typeof campaign!=='undefined'?sessionForToday():null;
-  return !session?.ended && !calendar.finished && calendar.day >= 8 && calendar.hour >= 20 && calendar.hour < (session?.end??appointmentEnd);
+  return !session?.ended && !calendar.finished && calendar.day >= 8 && calendar.hour >= appointmentStart && calendar.hour < (session?.end??appointmentEnd);
 }
 function gameOnline(member) {
   return Boolean(member) && duringAppointment() && member !== seats[3] && lineup().includes(member) && available(member);
@@ -483,14 +494,14 @@ function challengeBlock() {
     if (raidPlayback.active) return '本把进行中。';
     if (sessionForToday()?.decision) return '请先决定本晚的收队安排。';
     if (sessionForToday()?.ended) return '本晚已收队。';
-    if (duringAppointment() && remainingRaidMinutes() < maximumPullMinutes) return '距预约结束时间不足以开下一把。';
   }
   if (calendar.finished) return '本轮挑战已结束。';
   if (calendar.day < 8) return '准备阶段 · 第 8 天解锁挑战。';
   if (readyCount() < 8) return `目前 ${readyCount()}/8 席就绪，请从 NGE 招齐八个位置。`;
-  if (!duringAppointment()) return `本时段未预约，晚间约定为 20:00–${windowEndText(appointmentEnd)}。`;
+  if (!duringAppointment()) return `本时段未预约，本日约定为 ${timeWindowText(appointmentStart,appointmentEnd)}。`;
   const missing = lineup().filter(member => !available(member));
-  return missing.length ? `本时段无法出勤 · ${missing.map(member => member.role).join('、')}` : '';
+  if(missing.length)return `本时段无法出勤 · ${missing.map(member=>member.role).join('、')}`;
+  return playingCrystal&&remainingRaidMinutes()<maximumPullMinutes?'距全队共同出勤结束不足以开下一把。':'';
 }
 
 function calendarLocked() {
@@ -504,9 +515,13 @@ function renderCalendar() {
   const stamp = playingCrystal&&typeof campaign!=='undefined'?raidClockLabel():`第 ${calendar.day} 天 · ${activityTime(calendar.hour)}`;
   $('#calendar-phase').textContent = `${phase} · ${stamp} · 共 21 天`+(playingCrystal&&typeof campaign!=='undefined'&&campaign.minutes?' · 本段已用 '+campaign.minutes+'/120 分钟':'');
   const slots = $('#calendar-slots');
+  const starters=lineup();
   slots.replaceChildren();
   for (const hour of daySlots) {
     const slot = element(slots, 'li', slotText(hour));
+    const attendance=starters.filter(member=>member!==seats[3]&&available(member,hour)).length;
+    slot.dataset.fullTeam=String(attendance===seats.length);
+    element(slot,'small',`${attendance}/${seats.length} 可出勤`);
     if (!calendar.finished && hour === calendar.hour) slot.setAttribute('aria-current', 'time');
     if (hour >= 20) slot.dataset.evening = 'true';
   }
@@ -515,7 +530,7 @@ function renderCalendar() {
   $('#challenge-note').textContent = block || `八席均可出战。${tired.length ? `疲劳席位 · ${tired.join('、')}` : '八席精力正常。'}`;
   const arrivalCount = lineup().filter(gameOnline).length;
   const attendance = playingCrystal&&typeof campaign!=='undefined'&&raidPlayback.active?'本把进行中 · 指挥与事件播报已同步':playingCrystal&&typeof campaign!=='undefined'&&campaign.clear?'已首通 · 可查看本把战报与回放':duringAppointment() ? `游戏及语音到场 ${arrivalCount}/8 · ${arrivalCount === 8 ? '等待经理开怪' : '等待缺席席位'}`
-    : `晚间预约 20:00–${windowEndText(appointmentEnd)} · 约定结束后离开游戏和语音`;
+    : `开荒预约 ${timeWindowText(appointmentStart,appointmentEnd)} · 约定结束后离开游戏和语音`;
   $('#calendar-attendance').textContent = attendance;
   $('#stream-attendance').textContent = attendance;
   $('#cook-clock').textContent = stamp;
@@ -531,7 +546,10 @@ function renderCalendar() {
   $('#raid-relationship').disabled = Boolean(block);
   $('#stream-start-raid').disabled = Boolean(block);
   const locked=calendarLocked();
-  $('#desk-context').textContent = calendar.finished?'挑战已结束':calendar.day<8?'下一步 · 组建队伍':`开荒预约 · 20:00–${windowEndText(sessionForToday()?.end??appointmentEnd)}`;
+  const session=typeof campaign==='undefined'?null:sessionForToday();
+  const end=session&&!session.ended?session.end:appointmentEnd;
+  $('#desk-context').textContent = calendar.finished?'挑战已结束':calendar.day<8?'下一步 · 组建队伍':`开荒预约 · ${timeWindowText(appointmentStart,end)}`;
+  $('#session-start').disabled = calendar.finished || locked;
   $('#session-end').disabled = calendar.finished || locked;
   renderPromotion();
   $$('[data-clock-action]').forEach(button => {
@@ -606,8 +624,17 @@ function advanceCalendar(action, post = action === 'promote' ? promotionTarget()
 }
 
 $$('[data-clock-action]').forEach(button => button.addEventListener('click', () => advanceCalendar(button.dataset.clockAction)));
+function applyAppointmentWindow(){
+  $('#session-start').value=String(appointmentStart);
+  appointmentEnd=setWindowEnd($('#session-end'),appointmentStart,appointmentEnd);
+}
+$('#session-start').addEventListener('change',event=>{
+  appointmentStart=Number(event.target.value);
+  applyAppointmentWindow();
+  renderCalendar();drawVoice();
+});
 $('#session-end').addEventListener('change', event => {
-  appointmentEnd = Number(event.target.value);
+  appointmentEnd=Number(event.target.value);
   renderCalendar();
   drawVoice();
 });
@@ -909,8 +936,8 @@ function resetScenario(next, empty = false) {
   pressureChecks.length = 0;
   seedAffinity();
   previousWipe = null;
-  appointmentEnd = 24;
-  $('#session-end').value = '24';
+  appointmentStart=20;appointmentEnd=24;
+  applyAppointmentWindow();
   $('#raid-outcome').value = 'progress';
   $('#raid-relationship').value = 'none';
   $('#talk-type').value = 'listen';
@@ -952,7 +979,31 @@ function arrivalText(hour) {
 }
 
 function recruitSeats(post) { return post.roles===undefined?[post.seat]:post.roles; }
-function validRecruitWindow(start, end) { return daySlots.includes(start) && recruitEndHours.includes(end) && start < end; }
+function validActivityWindow(start,end) {return daySlots.includes(start)&&recruitEndHours.includes(end)&&start<end;}
+
+function weightedChoice(items,weight){
+  let cursor=randomValue()*items.reduce((sum,item)=>sum+weight(item),0);
+  return items.find(item=>(cursor-=weight(item))<0)??items.at(-1);
+}
+
+function recruitAvailability(post){
+  const required=daySlots.filter(slot=>slot>=post.hour&&slot<(post.endHour??post.hour+2));
+  const fits=availabilityProfiles.filter(profile=>profile.periods>=required.length);
+  const feasibleTraits=(post.traits??[]).filter(trait=>!availabilityTraits.has(trait)||fits.some(profile=>profile.trait===trait));
+  const locked=feasibleTraits[Math.floor(randomValue()*feasibleTraits.length)];
+  const profiles=availabilityTraits.has(locked)?fits.filter(profile=>profile.trait===locked):fits;
+  const profile=weightedChoice(profiles,item=>item.weight);
+  const windows=daySlots.map((_,i)=>daySlots.slice(i,i+profile.periods)).filter(window=>
+    window.length===profile.periods&&required.every(slot=>window.includes(slot)));
+  const hours=weightedChoice(windows,window=>window.includes(20)?window.includes(22)?window.includes(24)?14:9:6:window.includes(22)?4:1);
+  const traits=[...new Set([profile.trait,locked].filter(Boolean))];
+  if(!traits.length)traits.push(generalInnateTraits[Math.floor(randomValue()*generalInnateTraits.length)]);
+  if(traits.length===1&&randomValue()<.4){
+    const pool=generalInnateTraits.filter(trait=>!traits.includes(trait));
+    traits.push(pool[Math.floor(randomValue()*pool.length)]);
+  }
+  return {hours,traits,adjustment:profile.adjustment};
+}
 
 function createCandidate(post, seat) {
   const names = recruitmentNames[seat];
@@ -962,17 +1013,11 @@ function createCandidate(post, seat) {
   let sequence = candidateFiles.size + 1;
   let name = unused[ordinal % unused.length] ?? `${names[ordinal]}·${sequence}`;
   while (taken(name)) name = `${names[ordinal]}·${++sequence}`;
-  const preferred = post.traits?.length ? post.traits : innateTraits;
-  const firstTrait = preferred[Math.floor(randomValue() * preferred.length)];
-  const another = innateTraits.filter(trait => trait !== firstTrait);
-  const traits = randomValue() < .4 ? [firstTrait, another[Math.floor(randomValue()*another.length)]] : [firstTrait];
-  const hours = ordinal < 2 ? [20, 22, 24] : ordinal < 4 ? [20, 22] : ordinal < 6 ? [22, 24] : [14, 20];
-  const end=post.endHour??post.hour+2;
-  for(const slot of daySlots)if(slot>=post.hour&&slot<end&&!hours.includes(slot))hours.push(slot);
+  const {hours,traits,adjustment}=recruitAvailability(post);
   const candidate = {
     role: seat, name, gender: ordinal % 2 === 0 ? '女' : '男', pressure: 40 + ordinal,
-    hours: hours.sort((a,b) => a-b),
-    ...rollRecruitAttributes(post, randomValue), revealed: false, contact: ordinal % 2 === 0,
+    hours,
+    ...rollRecruitAttributes(post, randomValue, adjustment), revealed: false, contact: ordinal % 2 === 0,
     traits, trait: traits.join('、'), job: `${seat} 招募队员`,
   };
   candidateFiles.set(name, candidate);
@@ -1119,7 +1164,7 @@ function drawForum() {
     const body = element(row, 'div', null);
     chip(body,candidate.role);
     element(body,'strong',candidate.name);
-    element(body, 'small', candidate.hours.map(slotText).join(' / '));
+    element(body, 'small', `每日可用 ${availabilityText(candidate)}`);
     element(body, 'small', candidate.revealed
       ? `执行 ${candidate.execution} · 特质 ${candidate.trait}` : `执行约 ${Math.max(0,candidate.execution - 7)}–${Math.min(100,candidate.execution + 7)} · 特质待核实`);
     if (candidate.revealed) {
@@ -1178,11 +1223,17 @@ const traitOptions = $('#recruit-trait-options');
 const roleOptions = $('#recruit-role-options');
 const recruitStart = recruitForm.elements.startHour;
 const recruitEnd = recruitForm.elements.endHour;
-for(const [select,options,defaultHour] of [[recruitStart,daySlots,20],[recruitEnd,recruitEndHours,22]]){
+for(const [select,options,defaultHour] of [[recruitStart,daySlots,20],[recruitEnd,recruitEndHours,22],[$('#session-start'),daySlots,20],[$('#session-end'),recruitEndHours,24]]){
   for(const hour of options){
-    const option=element(select,'option',select===recruitEnd?windowEndText(hour):activityTime(hour));
+    const option=element(select,'option',options===recruitEndHours?windowEndText(hour):activityTime(hour));
     option.value=hour;option.defaultSelected=hour===defaultHour;
   }
+}
+function setWindowEnd(select,start,end){
+  for(const option of select.options)option.hidden=option.disabled=Number(option.value)<=start;
+  if(!validActivityWindow(start,end))end=start+2;
+  select.value=String(end);
+  return end;
 }
 for(const [group,roles] of [['坦克',['MT','ST']],['治疗',['H1','H2']],['输出',['D1','D2','D3','D4']]]){
   const section=element(roleOptions,'div',null,'recruit-role-group');
@@ -1221,11 +1272,12 @@ function recruitConditions() {
 }
 function renderRecruitEstimate() {
   const start=Number(recruitStart.value);
-  if(!validRecruitWindow(start,Number(recruitEnd.value)))recruitEnd.value=String(start+2);
-  for(const option of recruitEnd.options)option.hidden=option.disabled=Number(option.value)<=start;
-  $('#recruit-window-length').textContent=`${Number(recruitEnd.value)-start} 小时`;
+  const end=setWindowEnd(recruitEnd,start,Number(recruitEnd.value));
+  $('#recruit-window-length').textContent=`${end-start} 小时`;
   recruitForm.elements.quality.disabled = !recruitForm.elements.attribute.value;
   const {traits,duration} = recruitConditions();
+  const hint=end-start>6?'候选人会具有「无所事事」。':end-start>4?'候选人来自普通和长档期队员。':'候选人会覆盖所选档期。';
+  $('#recruit-availability-hint').textContent=hint+(end-start>4&&traits.includes('时间紧张')?' 本档期从其余锁定特质中抽选。':'');
   const roles=new FormData(recruitForm).getAll('seat');
   for (const checkbox of traitOptions.querySelectorAll('input')) checkbox.disabled = traits.length >= 3 && !checkbox.checked;
   const incomplete = traits.length !== 0 && traits.length !== 3;
@@ -1246,7 +1298,7 @@ $('#recruit-form').addEventListener('submit', event => {
   const hour = Number(form.get('startHour'));
   const endHour = Number(form.get('endHour'));
   const conditions = recruitConditions();
-  if (!title || !validRecruitWindow(hour,endHour) || !roles.length || roles.some(role=>!Object.hasOwn(recruitmentNames,role)) || (conditions.traits.length && conditions.traits.length !== 3) || calendar.finished) return;
+  if (!title || !validActivityWindow(hour,endHour) || !roles.length || roles.some(role=>!Object.hasOwn(recruitmentNames,role)) || (conditions.traits.length && conditions.traits.length !== 3) || calendar.finished) return;
   boards.recruit.unshift({title,tag:'等待首批',text:`目标档期 ${timeWindowText(hour,endHour)}`,roles,hour,endHour,...conditions,due:campaignHour()+conditions.duration,batches:[],batchIndex:0});
   currentBoard = 'recruit';
   postIndex = 0;

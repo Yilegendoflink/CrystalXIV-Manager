@@ -234,6 +234,8 @@ dialog h2{font-size:21px;margin-bottom:4px}dialog p{color:var(--muted);font-size
 .calendar-slots li{padding:5px 4px;background:#f7eddd;border:1px solid #d1baa1;text-align:center;font:12px var(--mono)}
 .calendar-slots li[data-evening="true"]{background:#ecd0b7}
 .calendar-slots li[aria-current="time"]{border:2px solid #a65b42;color:#682f22;font-weight:750;padding:4px 3px}
+.calendar-slots li small{display:block;margin-top:3px;color:#74594c;font-size:10px}
+.calendar-slots li[data-full-team=true] small{color:#37624d;font-weight:750}
 .calendar-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px;margin-bottom:8px}
 .calendar-settings label{display:grid;gap:3px;font-size:12px}
 .calendar-settings select{width:100%;padding:3px;color:var(--ink);background:#fff6e9;border:1px solid #c3a78d}
