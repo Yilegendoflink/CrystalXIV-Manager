@@ -341,18 +341,19 @@ function resolveCampaignPull(){
   for(const m of team){
     energy.set(m.name,Math.max(0,energyOf(m)-log.energyCost));
     const traits=pressureOf(m).traits;
-    const stress=log.clear?-20:fresh?-12:wipeStress(m,repeated);
+    const stress=log.clear?raidStress.clear:fresh?raidStress.progress:wipeStress(m,repeated);
     const overcame=traits.includes('逆风耐心')&&log.steps.some(s=>s.success&&s.p+'-'+s.key===previousWipe);
     const conflict=unresolved.includes(m.name)?incidentPullStress:0;
     changePressure(m,stress+conflict-(overcame?10:0)+(!log.clear&&!final.correct&&team[final.slot]===m&&traits.includes('害怕背锅')?22:0),at);
   }
   if(unresolved.length)log.unresolved=unresolved;
   stageBattleConversation(log,team,fresh,repeated,at);
-  if(!log.clear)log.incident=rollRaidIncident(team,final,repeated,at,log);
+  log.incident=settleRaidUnexpectedEvent(team,final,repeated,at,log);
   const title=log.clear?`第 ${log.number} 把 · 炎帝陵首通`:`第 ${log.number} 把 · P${final.p+1} ${final.title}团灭`;
   const conflictNote=unresolved.length?`\n争执未处理 · ${unresolved.join('、')}各加 ${incidentPullStress} 压力。`:'';
+  const incidentNote=log.incidentNeedsMediation?`\n新争执影响全队 · 每人加 ${log.incidentPressure} 压力。`:'';
   const usedEnergy=effectRange(team.map((member,index)=>log.partyStart[index].energy-energyOf(member)));
-  notifyResult('战报',title,`用时 ${minutes} 分钟 · 首领剩余 ${final.hp}% · 精力消耗 ${usedEnergy}${conflictNote}`,at,log);
+  notifyResult('战报',title,`用时 ${minutes} 分钟 · 首领剩余 ${final.hp}% · 精力消耗 ${usedEnergy}${conflictNote}${incidentNote}`,at,log);
   previousWipe=log.clear?null:signature;
   campaign.best=Math.max(campaign.best,log.steps.length);
   campaign.last=log;campaign.clear=log.clear;
@@ -406,7 +407,7 @@ function finishCookPlayback(log,checks){
   syncCookFrame();
   appendCookEvent(log.clear?'炎帝陵已首通。':`团灭 · ${log.steps.at(-1).title} · 本把用时 ${log.minutes} 分钟。`);
   if(log.unresolved?.length)appendCookEvent(`争执未处理 · ${log.unresolved.join('、')}各增加 ${incidentPullStress} 压力。`);
-  if(log.incident)appendCookEvent(`队务事件 · ${log.incident}，可在 Cook 或 QO 处理。`);
+  if(log.incident)appendCookEvent(`意外 · ${log.incident} · 全队压力 +${log.incidentPressure}${log.incidentNeedsMediation?' · 可安排调解':''}。`);
   if(checks)appendCookEvent(`触发 ${checks} 次压力检定。`);
   if(!sessionForToday()&&campaign.session?.ended)appendCookEvent('达到 02:00 的活动截止，本晚已收队。','02:00');
   if(publishRaidMessages(log))persistCrystal();

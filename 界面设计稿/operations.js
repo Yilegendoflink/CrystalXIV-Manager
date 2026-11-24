@@ -1,7 +1,8 @@
 'use strict';
 
 const shortRestMinutes=10, shortRestEnergy=14, shortRestPressure=8;
-const incidentPullStress=12;
+const incidentPullStress=12, incidentTeamStress=5;
+const raidStress={wipe:14,repeated:26,progress:-6,clear:-20};
 const incidentRules={
   wipe:{title:'灭团后互相指责',story:'两人对刚才灭团的原因各执一词，复盘变成争论。',affinity:9,pressure:12,raidMinutes:15},
   handoff:{title:'交接争吵',story:'双方都认为对方漏了口令，语音里的争论还没有结束。',affinity:10,pressure:14,raidMinutes:10},
@@ -18,9 +19,15 @@ const incidentLines={
   message:['你刚才那个「行吧」是在说我吗？','我在回上面的时间，没在说你。可能我回得太短了。'],
   schedule:['怎么又改时间？我之前说过那段不方便。','我以为那只是候选时段。我们等经理把最终时间定下来吧。'],
 };
+const battleIncidents=[
+  {title:'语音突然断续',pressure:6,lines:['刚才口令断了几句，我只听见后半截。','收到。下把我把关键口令再报一遍。']},
+  {title:'有人看错站位标记',pressure:8,lines:['我刚才认错了地上的标，站过去才反应过来。','下把开怪前我们按方位再对一下。']},
+  {title:'机制提示不同步',pressure:7,lines:['我这边的提示跟你报点没对上，刚才差点提前走。','先统一听语音，打完再看提示怎么回事。']},
+  {title:'临时被电话打断',pressure:9,lines:['刚才突然来电话，我分神了一下。现在已经处理好了。','行，缓一下。下把开怪前喊一声。']},
+];
 
 function pullEnergyCost(minutes){return 4+minutes*25/60;}
-function wipeStress(member,repeated){return repeated&&!pressureOf(member).traits.includes('逆风耐心')?20:8;}
+function wipeStress(member,repeated){return repeated&&!pressureOf(member).traits.includes('逆风耐心')?raidStress.repeated:raidStress.wipe;}
 
 function teamIncident(){
   const record=campaign.incident;
@@ -63,6 +70,27 @@ function rollRaidIncident(team,final,repeated,at,log){
   const responsible=team[final.slot];
   return openTeamIncident(final.key==='chain'||final.key==='cone'?'handoff':'wipe',
     [responsible,pickMember(team.filter(member=>member!==responsible))],at,log);
+}
+
+function settleRaidUnexpectedEvent(team,final,repeated,at,log){
+  const gap=campaign.incidentGap??0;
+  const highPressure=team.some(member=>pressureOf(member).value>=75);
+  const likelihood=.16+(repeated ? .08 : 0)+(highPressure ? .08 : 0);
+  if(gap<2&&combatRandom()>=likelihood){campaign.incidentGap=gap+1;return null;}
+  campaign.incidentGap=0;
+
+  const conflict=log.clear?null:rollRaidIncident(team,final,repeated,at,log);
+  const event=conflict?null:pickMember(battleIncidents);
+  const pressure=event?.pressure??incidentTeamStress;
+  for(const member of team)changePressure(member,pressure,at);
+  log.incidentPressure=pressure;
+  log.incidentNeedsMediation=Boolean(conflict);
+  if(conflict)return conflict;
+
+  const first=pickMember(team), second=pickMember(team.filter(member=>member!==first));
+  notifyResult('战报',`意外 · ${event.title}`,`全队各增加 ${pressure} 压力。`,at,log);
+  teamDialogue([[first,event.lines[0]],[second,event.lines[1]]],at,log);
+  return event.title;
 }
 
 function rollManagementIncident(){
@@ -149,9 +177,10 @@ function nextPullRisks(team){
   const crossesTick=campaign.minutes%30+maximumPullMinutes>=30;
   const {couples,enemies}=crossesTick?relationshipPairs(team):{couples:[],enemies:[]};
   const coupled=new Set(couples.flat()),hostile=new Set(enemies.flat());
+  const expectedIncidentStress=(campaign.incidentGap??0)>=2?incidentTeamStress:0;
   return team.map(member=>{
     const state=pressureOf(member);
-    const increase=wipeStress(member,Boolean(previousWipe))+(names.includes(member.name)?incidentPullStress:0)+
+    const increase=wipeStress(member,Boolean(previousWipe))+expectedIncidentStress+(names.includes(member.name)?incidentPullStress:0)+
       (state.traits.includes('害怕背锅')?22:0)+(hostile.has(member)?6:0)+(couples.length&&!coupled.has(member)?2:0);
     return {name:displayName(member),pressure:state.value,increase};
   }).filter(risk=>risk.pressure+risk.increase>=100);

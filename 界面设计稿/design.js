@@ -325,13 +325,12 @@ function changePressure(member, amount, at) {
 function trialPressure(result, at) {
   if (result === 'progress') {
     previousWipe = null;
-    for (const member of lineup()) changePressure(member, -12, at);
-    return '推进新机制，全队压力 −12。';
+    for (const member of lineup()) changePressure(member, raidStress.progress, at);
+    return `推进新机制，全队压力降低 ${-raidStress.progress}。`;
   }
   const attempts = result === 'repeat' ? 4 : 1;
   for (let index = 0; index < attempts; index++) {
-    const increase = previousWipe === '火狱之楔' ? 20 : 8;
-    for (const member of lineup()) changePressure(member, increase, at);
+    for (const member of lineup()) changePressure(member, wipeStress(member,previousWipe==='火狱之楔'), at);
     previousWipe = '火狱之楔';
   }
   return `在火狱之楔团灭 ${attempts} 把，已按是否连续失败结算压力。`;
