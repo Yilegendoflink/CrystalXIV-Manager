@@ -1,14 +1,14 @@
 'use strict';
 
 const shortRestMinutes=10, shortRestEnergy=14, shortRestPressure=8;
-const incidentPullStress=12, raidMediationMinutes=15;
+const incidentPullStress=12;
 const incidentRules={
-  wipe:{title:'灭团后互相指责',story:'两人对刚才灭团的原因各执一词，复盘变成争论。',affinity:9,pressure:12},
-  handoff:{title:'交接争吵',story:'双方都认为对方漏了口令，语音里的争论还没有结束。',affinity:10,pressure:14},
-  couple:{title:'CP 当众吵了起来',story:'两人把私下的不满带进队伍，开始在群里互相指责。',affinity:10,pressure:16},
-  enemy:{title:'仇人翻起旧账',story:'两人又翻起上次的争执，表示现在很难继续一起配合。',affinity:8,pressure:18},
-  message:{title:'群聊里的误会',story:'一条模棱两可的回复被理解成了嘲讽，两人来找经理说明情况。',affinity:8,pressure:9},
-  schedule:{title:'为排班争了起来',story:'两人对新排班的解释不同，开始质疑对方是否愿意配合。',affinity:8,pressure:10},
+  wipe:{title:'灭团后互相指责',story:'两人对刚才灭团的原因各执一词，复盘变成争论。',affinity:9,pressure:12,raidMinutes:15},
+  handoff:{title:'交接争吵',story:'双方都认为对方漏了口令，语音里的争论还没有结束。',affinity:10,pressure:14,raidMinutes:10},
+  couple:{title:'CP 当众吵了起来',story:'两人把私下的不满带进队伍，开始在群里互相指责。',affinity:10,pressure:16,raidMinutes:15},
+  enemy:{title:'仇人翻起旧账',story:'两人又翻起上次的争执，表示现在很难继续一起配合。',affinity:8,pressure:18,raidMinutes:15},
+  message:{title:'群聊里的误会',story:'一条模棱两可的回复被理解成了嘲讽，两人来找经理说明情况。',affinity:8,pressure:9,raidMinutes:10},
+  schedule:{title:'为排班争了起来',story:'两人对新排班的解释不同，开始质疑对方是否愿意配合。',affinity:8,pressure:10,raidMinutes:10},
 };
 const incidentLines={
   wipe:['刚才那下到底谁来喊？我完全没听见口令。','我喊了，但好几个人同时在说。先看一下这段录像吧。'],
@@ -78,15 +78,26 @@ function rollManagementIncident(){
   openTeamIncident(calendar.day<8?'message':'schedule',[first,second],campaignHour());
 }
 
-function canMediate(mode,incident=teamIncident()){
-  if(!incident||calendar.finished||raidPlayback.active||showingResolve)return false;
-  return mode==='raid'?canUseRaidBreak(raidMediationMinutes)&&incident.members.every(gameOnline):!calendarLocked()&&campaign.minutes===0;
+function mediationPlan(incident){
+  const inRaid=calendarLocked();
+  const minutes=inRaid?incident.rule.raidMinutes:120;
+  const label=inRaid?`${minutes} 分钟`:'2 小时';
+  let reason='';
+  if(calendar.finished)reason='本轮挑战已结束。';
+  else if(raidPlayback.active)reason='本把战斗结算后可调解。';
+  else if(showingResolve)reason='压力检定结束后可调解。';
+  else if(inRaid){
+    if(!incident.members.every(gameOnline))reason='双方到场后可调解，也可以收队后再安排。';
+    else if(!canUseRaidBreak(minutes))reason=`当前共同出勤时间不足 ${label}，可收队后安排调解。`;
+  }else if(campaign.minutes>0)reason='推进到下一个完整时段后可调解。';
+  return {inRaid,minutes,label,reason};
 }
 
-function mediateTeamIncident(mode){
+function mediateTeamIncident(){
   const incident=teamIncident();
-  if(!canMediate(mode,incident))return;
-  const inRaid=mode==='raid',minutes=inRaid?raidMediationMinutes:120;
+  if(!incident)return;
+  const {inRaid,minutes,label,reason}=mediationPlan(incident);
+  if(reason){toast(reason);renderOperations();return;}
   const affinityRecovery=inRaid?12:15,pressureRecovery=inRaid?18:24;
   const [first,second]=incident.members;
   delete campaign.incident;
@@ -97,9 +108,9 @@ function mediateTeamIncident(mode){
   if(inRaid){ensureRaidSession();advanceRaidMinutes(minutes);}
   else advanceCalendar('mediate');
   latestAffinityEvent=`${first.name}和${second.name}完成调解，双向好感各 +${affinityRecovery}，压力各 −${pressureRecovery}。`;
-  const message=`调解用时 ${inRaid?'15 分钟':'2 小时'} · ${latestAffinityEvent}`;
+  const message=`调解用时 ${label} · ${latestAffinityEvent}`;
   const pressureChanges=incident.members.map((member,i)=>`${member.name} ${pressureBefore[i]}→${pressureOf(member).value}`);
-  notifyResult('队务','调解完成',`用时 ${inRaid?'15 分钟':'2 小时'}\n好感 · ${affinityChanges.join('，')}\n压力 · ${pressureChanges.join('，')}`,at);
+  notifyResult('队务','调解完成',`用时 ${label}\n好感 · ${affinityChanges.join('，')}\n压力 · ${pressureChanges.join('，')}`,at);
   teamDialogue([[first,'刚才我的语气也有点冲。下次我先把话说完整。'],[second,'好，这事先翻篇。我们下把照说好的处理。']],at);
   appendCookEvent(message);
   renderCalendar();drawVoice();persistCrystal();
@@ -156,8 +167,8 @@ function requestRaidPull(fromCalendar){
   resolveCampaignPull();
 }
 
-function renderIncidentCard(box,mode,incident){
-  box.hidden=!incident||(mode==='raid'&&raidPlayback.active);
+function renderIncidentCard(box,incident,plan){
+  box.hidden=!incident||(box.id==='cook-incident'&&raidPlayback.active);
   box.replaceChildren();
   if(box.hidden)return;
   const {rule,members}=incident;
@@ -166,13 +177,9 @@ function renderIncidentCard(box,mode,incident){
   const bothOnRaid=incidentParticipants(lineup()).length>0;
   element(box,'small',bothOnRaid?`两人同场且争执未解决时，每把结束各额外加 ${incidentPullStress} 压力。`:'双方再次同场时，争执会影响当把结算的压力。');
   const actions=element(box,'div',null,'incident-actions');
-  const button=qoButton(actions,mode==='raid'?'调解 · 15 分钟':'调解 · 2 小时',()=>mediateTeamIncident(mode));
-  button.disabled=!canMediate(mode,incident);
-  if(mode==='raid')qoButton(actions,'打开 QO',()=>showApp('qo'));
-  else if(canMediate('raid',incident))qoButton(actions,'去 Cook 处理',()=>showApp('cook'));
-  else if(button.disabled&&!calendar.finished&&!raidPlayback.active){
-    element(box,'small',calendarLocked()?'收队后可安排两小时调解。':'到下一个完整时段可安排调解。');
-  }
+  const button=qoButton(actions,`调解 · ${plan.label}`,mediateTeamIncident);
+  button.disabled=Boolean(plan.reason);
+  if(plan.reason)element(box,'small',plan.reason);
 }
 
 function renderOperations(){
@@ -183,8 +190,9 @@ function renderOperations(){
   pull.textContent='开怪';pull.removeAttribute('aria-describedby');
   calendarPull.textContent='前往指挥并开怪';
   const incident=teamIncident();
-  renderIncidentCard($('#cook-incident'),'raid',incident);
-  renderIncidentCard($('#qo-incident'),'office',incident);
+  const plan=incident?mediationPlan(incident):null;
+  renderIncidentCard($('#cook-incident'),incident,plan);
+  renderIncidentCard($('#qo-incident'),incident,plan);
   if(challengeBlock()||showingResolve)return;
   const team=lineup(), risks=nextPullRisks(team), tired=team.filter(member=>energyOf(member)<=50).length;
   note.hidden=!risks.length&&!tired;
