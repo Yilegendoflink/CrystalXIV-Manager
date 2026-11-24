@@ -1,0 +1,83 @@
+.guide {
+  --guide-bg:#292638;
+  --guide-panel:#322d41;
+  --guide-edge:#625569;
+  --guide-text:#f3e4cf;
+  --guide-soft:#c8b9c3;
+  --guide-active:#efb591;
+  padding:14px 16px 18px;
+  background:var(--guide-bg);
+  color:var(--guide-text);
+  scrollbar-color:#966e74 #292638;
+}
+.guide h2,.guide h3,.guide h4,.guide p{margin:0}
+.guide button{min-height:30px;border:1px solid var(--guide-edge);background:#383146;color:var(--guide-text);padding:4px 8px}
+.guide button:focus-visible{outline:2px solid #ffd0a5;outline-offset:2px}
+.guide button[aria-pressed=true]{border-color:var(--guide-active);background:#584054;box-shadow:inset 2px 0 var(--guide-active)}
+.guide button:disabled{opacity:.65}
+.guide-head,.guide-head-actions,.guide-sheet-head,.guide-timeline header,.guide-work header,.guide-member header,.guide-transport{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.guide-head{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #8e6877}
+.guide-head h2{font-size:23px;color:#ffe4c2;line-height:1.2}
+.guide-head small,#guide-revision,.guide-sheet-head small,.guide-timeline header span{font:12px var(--mono);color:var(--guide-soft)}
+.guide-workspace{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:start;gap:12px}
+.guide-workspace h3{font-size:15px}
+.guide-timeline,.guide-sheet{min-width:0;border:1px solid var(--guide-edge);background:var(--guide-panel);padding:10px}
+.guide-timeline{background:#282536}
+#guide-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:8px 0 10px}
+#guide-tabs button{padding:3px;font-weight:700;line-height:1.3}
+#guide-tabs small{display:block;font:11px var(--mono);color:var(--guide-soft)}
+#guide-rows{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+#guide-rows button{width:100%;display:grid;align-items:center;grid-template-columns:20px minmax(0,1fr) auto;gap:4px;padding:4px;text-align:left}
+#guide-rows b{font-weight:600;overflow-wrap:anywhere;font-size:12px}
+#guide-rows small,.guide-order{font:11px var(--mono);color:var(--guide-active)}
+#guide-rows [data-known=false] button{background:#302e39;color:#bbb5c2}
+#guide-rows [data-known=false] button[aria-pressed=true]{background:#433943;color:#f2e3dd}
+#guide-rows [data-known=false] :is(small,.guide-order){color:#b1aab8}
+.guide-sheet-head{margin-bottom:6px}
+.guide-sheet-head h3{color:#ffe8cf;font-size:23px;line-height:1.3}
+.guide-reading{text-align:right;white-space:nowrap;color:var(--guide-soft);font-size:12px}
+.guide-reading strong{display:block;font:700 26px/1.05 var(--mono);color:#ffc89f}
+#guide-progress{display:block;width:100%;height:7px;appearance:none;border:1px solid #7c6576;background:#211f2d;accent-color:#d28c76}
+#guide-progress::-webkit-progress-bar{background:#211f2d}
+#guide-progress::-webkit-progress-value{background:#d28c76}
+#guide-progress::-moz-progress-bar{background:#d28c76}
+.guide-unlocks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;list-style:none;padding:0;margin:5px 0 12px;color:var(--guide-soft);font-size:11px}
+.guide-unlocks li{padding-top:4px;border-top:1px solid var(--guide-edge);text-align:right}
+.guide-unlocks li[data-ready=true]{color:#ffcfaa;border-color:#dfaa89}
+.guide-unlocks b{font-family:var(--mono)}
+.guide-content{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(205px,1fr);gap:10px;align-items:start}
+.guide-arena{position:relative;border:1px solid #71586c;background:#201e2e}
+.guide-arena canvas{width:100%;height:auto;display:block;image-rendering:pixelated}
+.guide-arena p{position:absolute;inset:0;display:grid;place-items:center;padding:8px;text-align:center;color:#d5c8d3;font-size:12px}
+.guide-transport{padding:5px 0;color:#dfc7c0;font:12px var(--mono)}
+.guide-transport button{min-width:54px;min-height:26px}
+.guide-brief{color:var(--guide-text);font-size:13px}
+.guide-work{margin-top:9px;display:grid;gap:4px}
+.guide-work h4,.guide-party h4{font-size:14px;color:#f1c4a6}
+.guide-work header button{min-height:25px;font-size:11px}
+.guide-work>button{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;min-width:0;font-size:12px}
+.guide-work>button span{color:#ead3bf;overflow-wrap:anywhere}
+.guide-warning,.guide-note,.guide-target{margin-top:3px!important;color:var(--guide-soft);font-size:12px;line-height:1.5}
+.guide-warning,.guide-target[data-met=false]{color:#ffd2ad}
+.guide-target[data-met=true]{color:#b7e2bd}
+.guide-party{background:#292636;border:1px solid var(--guide-edge);padding:7px}
+.guide-seats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin:5px 0 8px}
+.guide-seats button{padding:4px;text-align:left;min-width:0}
+.guide-seat-title{display:flex;align-items:center;gap:4px;font-size:12px;overflow-wrap:anywhere}
+.guide-seats small{display:block;color:#f0c4ad;margin-top:3px;font:11px var(--mono)}
+.guide-seats button[data-assigned=true] .guide-seat-title::after{content:'✓';color:#a5d1a5;margin-left:auto}
+.guide-member{padding-top:6px;border-top:1px solid var(--guide-edge)}
+.guide-member header strong{overflow-wrap:anywhere;font-size:13px}
+.guide-member header small{color:var(--guide-soft);white-space:nowrap;font-size:11px}
+.guide-stats{margin:4px 0;padding:0}
+.guide-stats div{display:grid;grid-template-columns:1fr 30px 50px;gap:4px;padding:2px 4px;font-size:12px}
+.guide-stats div[data-primary=true]{background:#49364b;color:#ffd0a6}
+.guide-stats dd{margin:0;text-align:right;font-family:var(--mono)}
+.guide-member button{width:100%;margin-top:5px}
+@media(min-width:741px){.app-window[data-app=doc]:not(.is-maximized){width:min(calc(100% - 136px),1080px);height:min(715px,calc(100% - 115px))}}
+@media(max-width:900px){.guide-workspace{grid-template-columns:160px minmax(0,1fr)}.guide-content{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:740px){
+  .guide{padding:8px}.guide-head{margin-bottom:8px}.guide-head h2{font-size:19px}.guide-head-actions{flex-wrap:wrap;justify-content:flex-end}#guide-revision{font-size:10px}
+  .guide-workspace{grid-template-columns:minmax(0,1fr);gap:6px}.guide-timeline,.guide-sheet{padding:7px}
+  #guide-tabs{margin:4px 0}#guide-rows{grid-template-columns:repeat(2,minmax(0,1fr))}.guide-sheet-head h3{font-size:19px}.guide-unlocks{font-size:10px}
+}

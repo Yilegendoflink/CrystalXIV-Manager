@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FF职业固定队经理2026 · Crystal 界面设计稿</title>
+  <link rel="stylesheet" href="./design.css">
+  <script src="./nge-data.js" defer></script>
+  <script src="./qo.js" defer></script>
+  <script src="./design.js" defer></script>
+  <link rel="stylesheet" href="./qo.css">
+  <script src="./raid.js" defer></script>
+  <script src="./doc.js" defer></script>
+  <script src="./manager.js" defer></script>
+  <script src="./crystal-save.js" defer></script>
+  <link rel="stylesheet" href="./raid.css">
+  <link rel="stylesheet" href="./doc.css">
+  <link rel="stylesheet" href="./manager.css">
+</head>
+<body>
+  <main>
+    <section id="home" class="launch" aria-labelledby="game-title">
+      <header class="launch-bar">
+        <span class="launch-mark"><canvas data-icon="crystal" width="24" height="24" aria-hidden="true"></canvas>Crystal 游戏启动器</span>
+        <button class="plain" type="button" data-save-menu>存档管理</button>
+      </header>
+      <div class="home-grid">
+        <div class="home-modes">
+          <h1 id="game-title" tabindex="-1">FF职业固定队经理<span>2026</span></h1>
+          <p class="launch-lede">招募八席，排好今晚，带队首通。</p>
+          <nav class="modes" aria-label="游戏模式">
+            <button class="mode available" type="button" id="choose-mode"><strong>选择副本</strong><span>攻克一个指定副本</span><span aria-hidden="true">→</span></button>
+            <button class="mode" type="button" disabled><strong>战役模式</strong><span>接手预设队伍与剧本</span><small>规划中</small></button>
+            <button class="mode" type="button" disabled><strong>生涯模式</strong><span>经营长期专属固定队</span><small>规划中</small></button>
+            <button class="mode" type="button" disabled><strong>进度模式</strong><span>执掌顶级队伍，争夺首杀</span><small>规划中</small></button>
+            <button class="mode" type="button" disabled><strong>死者宫殿</strong><span>短局随机挑战</span><small>规划中</small></button>
+          </nav>
+        </div>
+        <aside class="continue-card" aria-label="最近存档">
+          <div class="continue-art"><img src="./assets/yandiling-cover.png" alt="炎帝陵的红鳞巨蜥喷出火焰"></div>
+          <div class="continue-info">
+            <p class="eyebrow">最近存档 · 存档 1</p>
+            <h2>炎帝陵</h2>
+            <p>准备期第 7 天 · 固定队就绪 7/8</p>
+            <button class="action dark-action" type="button" data-enter="continue">继续上次游戏 <span aria-hidden="true">→</span></button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="selection" class="launch" aria-labelledby="selection-title" hidden>
+      <header class="launch-bar">
+        <button class="plain" type="button" data-home>← 返回开始</button>
+        <button class="plain" type="button" data-save-menu>存档管理</button>
+      </header>
+      <div class="selection-intro"><h1 id="selection-title" tabindex="-1">选择副本</h1><p>挑选本次开荒目标。进入后从桌面开始管理队伍。</p></div>
+      <div class="duty-layout">
+        <section aria-label="当前可选副本">
+          <div class="rail-heading"><strong>当前可选</strong><span>1 个副本</span></div>
+          <div class="duty-rail">
+            <button class="duty-card" type="button" data-enter="new" aria-label="进入炎帝陵">
+              <span class="duty-art"><img src="./assets/yandiling-cover.png" alt="" loading="eager"></span>
+              <span class="duty-copy"><strong>炎帝陵</strong><span>朱鳞巨蜥 · 八人高难</span><span class="duty-enter">进入副本 <span aria-hidden="true">→</span></span></span>
+            </button>
+          </div>
+        </section>
+        <aside class="duty-brief">
+          <h2>开荒简报</h2>
+          <p>用 7 天组队，再用 14 天挑战。你负责招募八席、安排档期及休整，带队推进首通。</p>
+          <ol>
+            <li><strong>P1</strong> 双坦交接、冲锋躲避与四根楔</li>
+            <li><strong>P2</strong> 连线、火柱与八根楔</li>
+            <li><strong>P3</strong> 连续机制与狂暴输出检查</li>
+          </ol>
+          <div class="duty-meta"><span>2 坦克</span><span>2 治疗</span><span>4 输出</span></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="desktop" class="desktop" aria-label="Crystal 系统桌面" hidden>
+      <canvas id="wallpaper" width="480" height="270" aria-hidden="true"></canvas>
+      <header class="manager-dock">
+        <div class="desktop-brand"><canvas data-icon="crystal" width="24" height="24" aria-hidden="true"></canvas><strong>Crystal</strong></div>
+        <section class="manager-tool" aria-labelledby="manager-title">
+          <div class="manager-heading"><h2 id="manager-title">经理工具</h2><span id="manager-phase">准备阶段</span></div>
+          <div class="manager-watch"><time id="manager-time" datetime="10:00" title="当前游戏时间">10:00</time><span id="manager-day">第 1 天</span></div>
+          <div class="manager-wallet" aria-label="Gil 余额"><i class="manager-coin" aria-hidden="true"></i><div><span>Gil 余额</span><output id="manager-gil">0</output></div></div>
+          <div class="manager-actions" aria-label="日程快捷操作">
+            <button type="button" id="manager-advance"><span>下一时段</span><b aria-hidden="true">›</b></button>
+            <button type="button" id="manager-jump" aria-controls="manager-jumps" aria-expanded="false">跳转时间 <b aria-hidden="true">▾</b></button>
+            <button type="button" id="desk-clock" data-calendar>日程</button>
+            <div id="manager-jumps" class="manager-jumps" aria-label="时间跳转目标" hidden>
+              <button type="button" data-time-target="raid"><span>下次开荒</span><strong></strong></button>
+              <button type="button" data-time-target="recruit"><span>最近招募结果</span><strong></strong></button>
+              <button type="button" data-time-target="morning"><span>下个活动日</span><strong></strong></button>
+            </div>
+          </div>
+        </section>
+      </header>
+      <nav class="shortcuts" aria-label="桌面软件">
+        <button type="button" data-app="qo" aria-label="打开 QO"><canvas data-icon="qo" width="24" height="24" aria-hidden="true"></canvas><span>QO</span></button>
+        <button type="button" data-app="cook" aria-label="打开 Cook"><canvas data-icon="cook" width="24" height="24" aria-hidden="true"></canvas><span>Cook</span></button>
+        <button type="button" data-app="nge" aria-label="打开 NGE"><canvas data-icon="nge" width="24" height="24" aria-hidden="true"></canvas><span>NGE</span></button>
+        <button type="button" data-app="doc" aria-label="打开 Doc"><canvas data-icon="doc" width="24" height="24" aria-hidden="true"></canvas><span>Doc</span></button>
+      </nav>
+      <aside class="desktop-brief" aria-label="本次副本进度">
+        <p id="desk-context">准备期 · 第 7 天 18:00</p>
+        <h1 id="desk-title" tabindex="-1">炎帝陵</h1>
+        <span id="desk-ready">7/8 已确认 · H2 候补待定</span>
+        <button type="button" data-app="qo">查看队伍消息 <span aria-hidden="true">→</span></button>
+        <button type="button" data-calendar>查看本轮日程 <span aria-hidden="true">→</span></button>
+      </aside>
+
+      <div id="app-windows" hidden>
+        <header id="window-bar" class="window-bar">
+          <div><strong id="window-title" tabindex="-1"></strong><span id="window-caption"></span></div>
+          <div class="window-controls">
+            <button id="window-min" type="button" aria-label="最小化" title="最小化">_</button>
+            <button id="window-max" type="button" aria-label="最大化" title="最大化" aria-pressed="false">□</button>
+            <button id="window-close" type="button" aria-label="关闭窗口" title="关闭窗口">×</button>
+          </div>
+        </header>
+
+        <section class="app-body qo" data-app-panel="qo" aria-label="QO 聊天与队伍管理" hidden>
+          <aside class="qo-nav">
+            <div class="app-brand"><canvas data-icon="qo" width="24" height="24" aria-hidden="true"></canvas><strong>QO</strong></div>
+            <label class="qo-search"><span aria-hidden="true">⌕</span><input id="qo-search" type="search" placeholder="搜索会话或队员" aria-label="搜索会话或队员"></label>
+            <label class="qo-sort">排序<select id="qo-sort"><option value="default">默认</option><option value="unread">未读优先</option></select></label>
+            <div id="qo-direct-list">
+              <button type="button" class="conversation selected" data-thread="team" aria-pressed="true"><span class="mini-avatar">团</span><span><strong>炎帝陵固定队</strong><small>晚间开荒 · 8 席</small></span></button>
+              <button type="button" class="conversation" data-thread="backup" aria-pressed="false"><span class="mini-avatar muted-avatar">雀</span><span><strong>雀斑</strong><small>H2 候补</small></span></button>
+            </div>
+          </aside>
+          <div class="qo-chat">
+            <header class="pane-head"><div><h2 id="qo-thread-title">炎帝陵固定队</h2><p id="qo-thread-note">队伍群聊 · 预定晚间开荒</p></div><div class="qo-tools"><span class="pill" id="qo-ready">7/8 已确认</span><button type="button" class="plain" id="qo-settings">群聊设置</button></div></header>
+            <p id="qo-pin" class="pinned">群公告 · 先确认 H2，进语音后对一次换坦口令。</p>
+            <div id="qo-messages" class="messages" role="log" aria-label="会话消息"></div>
+            <div id="qo-request" hidden></div>
+            <div id="qo-talk-actions" class="qo-talk-actions" hidden>
+              <button type="button" class="plain" data-qo-talk="listen">安抚 · 2 小时</button><button type="button" class="plain" data-qo-talk="encourage">鼓励 · 2 小时</button>
+              <small>安抚降 16 压力。鼓励加 8 压力，实战发挥 +10% 持续一天。</small>
+            </div>
+            <form id="qo-compose" class="compose"><label class="sr-only" for="qo-message">输入模拟消息</label><input id="qo-message" type="text" required maxlength="150" placeholder="发一条队内消息…"><button type="submit" class="action">发送</button></form>
+          </div>
+          <aside class="qo-members">
+            <h2>群聊名单</h2>
+            <p id="qo-roster-size">队伍 8/10 人</p>
+            <ul id="qo-members" class="member-list" aria-label="八席名单"></ul>
+            <div id="qo-member-detail" class="member-detail" aria-live="polite"></div>
+            <p id="qo-reserves" hidden></p>
+            <button class="action" id="qo-confirm" type="button">确认雀斑补位</button>
+            <button class="plain" id="qo-relationships" type="button">查看双向好感</button>
+          </aside>
+        </section>
+
+        <section class="app-body cook" data-app-panel="cook" aria-label="Cook 语音观察" hidden>
+          <aside class="cook-nav">
+            <div class="app-brand"><canvas data-icon="cook" width="24" height="24" aria-hidden="true"></canvas><strong>Cook</strong></div>
+            <h2>固定队频道</h2>
+            <button type="button" data-channel="raid" aria-pressed="true"><span>开荒语音</span><small id="cook-count">7 人</small></button>
+            <button type="button" data-channel="review" aria-pressed="false"><span>双治疗复盘</span><small>1 人</small></button>
+            <button type="button" data-channel="reserve" aria-pressed="false"><span>候补待命</span><small>1 人</small></button>
+            <button type="button" id="cook-mute" class="cook-mute" aria-pressed="false">麦克风 · 开启</button>
+          </aside>
+          <div class="cook-main">
+            <header class="pane-head"><div><h2>开荒指挥台</h2><p id="cook-clock"></p></div><div class="speaking"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span id="cook-speaker">白脊发言中</span></div></header>
+            <div class="cook-observer">
+              <div class="stream-main">
+                <div class="stream-frame"><img id="stream-picture" src="./assets/yandiling-breath.png" alt="炎帝陵观战画面"></div>
+                <div class="stream-caption"><div><h3 id="stream-stage">等待指挥</h3><p id="stream-attendance"></p></div><div><span class="pill" id="stream-ready">0/8 已确认</span><small id="stream-overlay">炎帝陵 · 待开怪</small></div></div>
+              </div>
+              <aside class="cook-events" aria-label="实时事件">
+                <h3>实时事件</h3><ol id="cook-event-feed" role="log" aria-live="polite"><li>队伍准备中。</li></ol>
+              </aside>
+            </div>
+            <div class="cook-controls" aria-label="开荒指挥">
+              <button type="button" id="stream-start-raid" class="action">开怪</button>
+              <button type="button" id="cook-review" class="plain" disabled>复盘 · 5 分钟</button>
+              <button type="button" id="cook-short-rest">短休 · 10 分钟</button>
+              <button type="button" id="cook-stop" hidden>本晚收队</button><button type="button" id="cook-skip" hidden>跳到结算</button>
+            </div>
+            <section id="cook-shift" hidden aria-labelledby="cook-shift-title">
+              <strong id="cook-shift-title">本晚排班决定</strong><p id="cook-shift-note"></p>
+              <div class="cook-controls"><button type="button" data-shift="early">提前收队</button><button type="button" data-shift="normal">按原计划</button><button type="button" data-shift="delay">延后两小时</button></div>
+            </section>
+            <h3 class="cook-section-title">全队状态</h3>
+            <div id="cook-party" class="cook-party" aria-label="在场成员压力和精力"></div>
+            <div id="raid-report" aria-live="polite"></div>
+            <h3 id="cook-channel-title" class="cook-section-title">开荒语音</h3>
+            <div id="cook-roster" class="voice-grid" aria-label="频道成员状态"></div>
+            <details id="cook-pressure-log" class="pressure-log" hidden><summary id="cook-pressure-summary"></summary><ul id="cook-pressure-events"></ul></details>
+            <footer class="cook-footer"><p id="cook-advice"></p><button id="cook-rest" type="button">建议短休</button></footer>
+            <details class="film-preview"><summary>压力演出预览</summary><button type="button" data-film-preview="faith">坚定信念</button><button type="button" data-film-preview="collapse">精神崩溃</button></details>
+          </div>
+        </section>
+
+        <section class="app-body nge" data-app-panel="nge" aria-label="NGE 论坛与招募" hidden>
+          <header class="nge-head"><div class="app-brand"><canvas data-icon="nge" width="24" height="24" aria-hidden="true"></canvas><div><strong>NGE 论坛</strong><small>Crystal 玩家交流站</small></div></div><button type="button" class="action" id="open-recruit">发布招募帖</button></header>
+          <div class="forum-tabs" aria-label="论坛板块"><button type="button" data-board="news" aria-pressed="true">游戏新闻</button><button type="button" data-board="general" aria-pressed="false">玩家交流</button><button type="button" data-board="recruit" aria-pressed="false">固定队招募</button></div>
+          <div class="forum-layout">
+            <section><h2 id="board-title">游戏新闻</h2><div id="forum-posts" class="forum-posts"></div></section>
+            <aside id="forum-detail" class="forum-detail" aria-live="polite"></aside>
+          </div>
+        </section>
+
+        <section class="app-body guide" data-app-panel="doc" aria-label="Doc 队伍攻略" hidden>
+          <header class="guide-head"><div><small>Doc / 选择副本</small><h2>炎帝陵攻略</h2></div><div class="guide-head-actions"><span id="guide-revision"></span><button type="button" data-app="cook">打开 Cook</button></div></header>
+          <div class="guide-workspace">
+            <aside class="guide-timeline" aria-label="机制时间轴">
+              <header><h3>机制时间轴</h3><span id="guide-count"></span></header>
+              <nav id="guide-tabs" aria-label="攻略阶段"></nav><ol id="guide-rows" aria-label="阶段机制"></ol>
+            </aside>
+            <section class="guide-sheet" aria-labelledby="guide-mechanic">
+              <header class="guide-sheet-head"><div><small id="guide-position"></small><h3 id="guide-mechanic"></h3></div><div class="guide-reading"><span>探明度</span><strong id="guide-percent"></strong></div></header>
+              <progress id="guide-progress" max="100" value="0" aria-label="当前机制探明度"></progress>
+              <ol id="guide-unlocks" class="guide-unlocks"><li data-unlock="30"><b>30%</b> 分工</li><li data-unlock="60"><b>60%</b> 主考属性</li><li data-unlock="90"><b>90%</b> 数值要求</li><li data-unlock="100"><b>100%</b> 要求 −20%</li></ol>
+              <div class="guide-content">
+                <section class="guide-visual" aria-label="机制演示">
+                  <div class="guide-arena"><canvas id="guide-arena" width="400" height="220" aria-label="炎帝陵机制俯视演示"></canvas><p id="guide-empty"></p></div>
+                  <div id="guide-transport" class="guide-transport" hidden><button id="guide-animate" type="button"></button><span id="guide-beat"></span></div>
+                  <p id="guide-brief" class="guide-brief"></p>
+                  <div id="guide-work" class="guide-work"></div>
+                </section>
+                <section class="guide-party" aria-label="席位与队员属性"><h4>席位与队员</h4><div id="guide-seats" class="guide-seats"></div><div id="guide-member" class="guide-member"></div></section>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+
+      <aside id="crystal-menu" class="crystal-menu" aria-label="Crystal 菜单" hidden>
+        <strong>Crystal 系统</strong>
+        <button type="button" data-app="qo">QO · 队伍消息</button>
+        <button type="button" data-app="cook">Cook · 监控与指挥</button>
+        <button type="button" data-app="nge">NGE · 新闻与招募</button>
+        <button type="button" data-app="doc">Doc · 队伍攻略</button>
+        <hr>
+        <button type="button" data-save-menu>存档管理</button>
+        <button type="button" data-home>返回开始</button>
+      </aside>
+      <footer class="taskbar">
+        <button type="button" id="crystal-start" aria-expanded="false" aria-controls="crystal-menu"><canvas data-icon="crystal" width="24" height="24" aria-hidden="true"></canvas>Crystal</button>
+        <nav id="task-tabs" class="task-tabs" aria-label="已打开窗口"></nav>
+        <button id="crystal-sound" type="button" class="plain" aria-pressed="false">音效关</button>
+        <div class="tray"><span class="tray-dot" aria-hidden="true"></span><span id="tray-ready">7/8 就绪</span></div>
+      </footer>
+    </section>
+  </main>
+
+  <dialog id="save-dialog" aria-labelledby="save-title">
+    <h2 id="save-title">存档管理</h2>
+    <p>选择存档继续，或创建新的开荒记录。</p>
+    <div class="save-slots">
+      <div><span>存档 1</span><strong>炎帝陵</strong><small>准备 · 第 7 天 · 7/8 已确认</small><button class="action" type="button" data-enter="continue">读取</button></div>
+      <div><span>存档 2</span><strong>空白</strong><small>可创建新档</small><button class="plain" type="button" data-select>新建</button></div>
+      <div><span>存档 3</span><strong>空白</strong><small>可创建新档</small><button class="plain" type="button" data-select>新建</button></div>
+    </div>
+    <footer class="dialog-actions"><button type="button" class="plain" id="save-import">导入 JSON</button><button type="button" class="plain" id="save-export">导出存档</button><form method="dialog"><button class="action">关闭</button></form></footer>
+    <p id="save-feedback" class="inline-feedback" role="status"></p>
+  </dialog>
+
+  <dialog id="recruit-dialog" aria-labelledby="recruit-title">
+    <h2 id="recruit-title">发布招募帖</h2>
+    <p>按席位和档期招募，每批收到 2–5 名候选。</p>
+    <form id="recruit-form" class="recruit-form">
+      <label>招募席位<select name="seat"><option>H2</option><option>MT</option><option>ST</option><option>H1</option><option>D1</option><option>D2</option><option>D3</option><option>D4</option></select></label>
+      <label>开荒档期<select name="time"><option>20:00–22:00</option><option>22:00–24:00</option><option>次日 00:00–02:00</option><option>18:00–20:00</option><option>16:00–18:00</option><option>14:00–16:00</option><option>12:00–14:00</option><option>10:00–12:00</option></select></label>
+      <label>帖子标题<input name="title" required maxlength="42" value="炎帝陵固定队招募"></label>
+      <fieldset class="recruit-trait-fields"><legend>天生特质 · 选满三项加 2 小时</legend><p>每名候选至少具备其中一项。留空则按普通条件招募。</p><div id="recruit-trait-options"></div></fieldset>
+      <div class="recruit-ratings"><label>指定属性<select name="attribute"><option value="">不限</option><option value="execution">执行</option><option value="coordination">协作</option><option value="reaction">应变</option><option value="technique">手法</option><option value="aptitude">资质</option></select></label>
+      <label>保底等级<select name="quality" disabled></select></label></div>
+      <p id="recruit-estimate" role="status"></p>
+      <footer class="dialog-actions"><button class="plain" id="cancel-recruit" type="button">取消</button><button type="submit" class="action">发布招募帖</button></footer>
+    </form>
+  </dialog>
+  <dialog id="calendar-dialog" aria-labelledby="calendar-title">
+    <h2 id="calendar-title">本轮日程</h2>
+    <p id="calendar-phase"></p>
+    <ol id="calendar-slots" class="calendar-slots" aria-label="本活动日的八个时段"></ol>
+    <div class="calendar-settings">
+      <label>晚间预约<select id="session-end"><option value="24">20:00–24:00</option><option value="22">20:00–22:00</option><option value="26">20:00–次日 02:00</option></select></label>
+      <label>挑战结果样例<select id="raid-outcome"><option value="progress">推进一个新机制</option><option value="fail">在火狱之楔团灭一把</option><option value="repeat">连续四把卡火狱之楔</option></select></label>
+      <label class="relationship-setting">战斗关系事件样例<select id="raid-relationship"><option value="none">不指定额外事件</option><option value="rescue">白脊救场</option><option value="injury">静弦吃到意外伤害</option><option value="random">随机队友互动</option></select></label>
+      <label>对谈成员<select id="talk-member"></select></label>
+      <label>对谈方向<select id="talk-type"><option value="listen">安抚 · 压力 −16</option><option value="encourage">鼓励 · 压力 +8 · 实战发挥 +10% 一天</option><option value="goal">明确目标 +8</option></select></label>
+    </div>
+    <p id="calendar-attendance"></p>
+    <p id="challenge-note"></p>
+    <div class="calendar-actions" aria-label="本时段行动">
+      <button type="button" class="plain" data-clock-action="wait">推进 2 小时</button>
+      <button type="button" class="plain" id="fast-forward">快进至下次挑战日 20:00</button>
+      <button type="button" class="plain" id="calendar-recruit">打开 NGE 招募</button>
+      <label class="promote-control">招募帖<select id="promote-post"></select></label>
+      <button type="button" class="plain" data-clock-action="promote">挂游戏招募 · 2 小时</button>
+      <button type="button" class="plain" data-clock-action="talk">队员对谈 · 2 小时</button>
+      <button type="button" class="plain" data-clock-action="intel">情报分析 · 2 小时</button>
+      <button type="button" class="action" data-clock-action="raid" aria-describedby="challenge-note">副本挑战 · 2 小时</button>
+    </div>
+    <p id="calendar-feedback" class="inline-feedback" role="status"></p>
+    <footer class="dialog-actions"><form method="dialog"><button class="action">关闭</button></form></footer>
+  </dialog>
+  <dialog id="qo-settings-dialog" aria-labelledby="qo-settings-title">
+    <header class="qo-dialog-head"><h2 id="qo-settings-title">群聊设置</h2><form method="dialog"><button class="plain" aria-label="关闭群聊设置">×</button></form></header>
+    <p id="qo-settings-count"></p><div id="qo-settings-list"></div>
+  </dialog>
+  <dialog id="qo-profile-dialog" aria-labelledby="qo-profile-title">
+    <header class="qo-dialog-head"><h2 id="qo-profile-title">个人资料</h2><form method="dialog"><button class="plain" aria-label="关闭个人资料">×</button></form></header>
+    <div id="qo-profile-body"></div>
+  </dialog>
+  <dialog id="relationships-dialog" aria-labelledby="relationships-title">
+    <h2 id="relationships-title">队员好感</h2>
+    <p class="relationship-hint">双方各有一条好感记录。数值和关系仅经理可见。</p>
+    <label class="relationship-focus">查看谁的关系<select id="relationship-person"></select></label>
+    <p id="relationship-summary" class="relationship-summary"></p>
+    <table class="relationship-table">
+      <thead><tr><th scope="col">队员</th><th scope="col">所选队员→对方</th><th scope="col">对方→所选队员</th><th scope="col">关系</th></tr></thead>
+      <tbody id="relationship-rows"></tbody>
+    </table>
+    <p id="relationship-event" class="inline-feedback" role="status"></p>
+    <footer class="dialog-actions"><form method="dialog"><button class="action">关闭</button></form></footer>
+  </dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="resolve-film" aria-labelledby="resolve-heading">
+    <div class="resolve-stage"><div class="resolve-rays"></div><canvas id="resolve-face" width="40" height="40" aria-label="队员像素头像"></canvas>
+      <h2 id="resolve-heading" aria-live="polite"></h2><p id="resolve-trait"></p><p id="resolve-change"></p>
+      <button type="button" id="resolve-next">揭晓</button></div>
+  </dialog>
+</body>
+</html>
