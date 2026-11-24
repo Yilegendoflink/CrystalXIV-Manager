@@ -6,6 +6,10 @@
 #raid-report{font-size:13px;background:#efe0ce;margin-top:8px;padding:7px}#raid-report summary{cursor:pointer;font-weight:bold}
 #raid-report .missed{color:#8b3b29}#raid-report details p{padding:4px;border-top:1px solid #cfbaa0}
 .stream-frame iframe{width:100%;height:100%;border:0;display:block}.stream-frame{isolation:isolate}
+.cook .stream-frame,.stream-frame iframe{background:#000}
+.stream-offline{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:4px;background:#000;color:#a3a3ad}
+.stream-offline strong{color:#dad9e1;font:700 clamp(17px,2.4vw,25px)/1 var(--mono);letter-spacing:.22em}
+.stream-offline small{font-size:12px;letter-spacing:.08em}
 @media(min-width:741px){.app-window[data-app="cook"]:not(.is-maximized){width:min(calc(100% - 136px),1140px);height:min(775px,calc(100% - 95px))}}
 .cook{grid-template-columns:136px minmax(0,1fr)}
 .cook-observer{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,24%);gap:8px}

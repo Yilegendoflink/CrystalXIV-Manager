@@ -1,0 +1,61 @@
+#recruit-dialog{width:min(568px,calc(100% - 20px));padding:0;background:#f4e8d5;box-shadow:5px 5px #34283aaa}
+.recruit-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 15px;background:#593b4d;border-bottom:2px solid #b77c6d;color:#ffebd4}
+.recruit-head h2{margin:0;line-height:1.2;font-size:21px}
+.recruit-head small{color:#e7c5b6;font:11px var(--mono)}
+#recruit-seat-count{padding:4px 7px;border:1px solid #b98886;background:#433146;color:#ffe1c4;white-space:nowrap;font-size:12px}
+#recruit-form{margin:0;padding:12px 14px;gap:10px}
+.recruit-basics,.recruit-ratings{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px}
+.recruit-basics :is(input,select),.recruit-ratings select{width:100%;min-width:0;min-height:33px}
+.recruit-role-fields{min-width:0;margin:0;border:1px solid #b99a83;padding:8px;background:#f9eedf}
+.recruit-role-fields legend,.recruit-trait-fields legend{font-size:13px;font-weight:750;color:#63463c;padding:0 4px}
+#recruit-role-options{display:grid;grid-template-columns:2fr 2fr 4fr;gap:8px}
+.recruit-role-group{min-width:0}
+.recruit-role-group>strong{display:block;margin-bottom:4px;color:#6a5149;font-size:11px}
+.recruit-role-cards{display:flex;gap:3px}
+.recruit-form .recruit-role-card{position:relative;flex:1;min-width:0;min-height:37px;place-items:center;gap:1px;border:1px solid #cbb19a;background:#f4e5d2;cursor:pointer;transition:background .16s,border-color .16s,transform .12s}
+.recruit-role-card:hover{background:#f8d9bf}
+.recruit-role-card:active{transform:translateY(1px)}
+.recruit-role-card input{position:absolute;width:1px;height:1px;opacity:0}
+.recruit-role-card:has(input:focus-visible){outline:2px solid #26675f;outline-offset:2px}
+.recruit-role-card:has(input:checked){border-color:#995c4f;background:#edc8ae;box-shadow:inset 0 -2px #aa6753}
+.recruit-role-card:has(input:checked)::after{content:'✓';position:absolute;top:0;right:2px;color:#704336;font:700 10px/1 var(--mono)}
+.recruit-role-fields footer,.recruit-filters summary,.recruit-submit{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.recruit-role-fields footer{margin-top:7px}
+.recruit-role-fields footer p,.recruit-trait-fields p{font-size:12px}
+.recruit-role-fields footer button{padding:2px 8px;white-space:nowrap;font-size:12px}
+.recruit-filters{border:1px solid #c4a992;padding:5px 8px;background:#ead9c4}
+.recruit-filters summary{cursor:pointer;color:#623f35;font-weight:700;font-size:13px}
+.recruit-filters summary span::before{content:'▸';display:inline-block;width:15px;color:#985a4d}
+.recruit-filters[open] summary span::before{content:'▾'}
+.recruit-filters summary small{font-size:11px;color:#795448}
+.recruit-filters[open] .recruit-trait-fields,.recruit-filters[open] .recruit-ratings{margin-top:6px}
+.recruit-submit{padding-top:8px;border-top:1px solid #bf9f85}
+#recruit-estimate{min-width:0}
+#recruit-estimate small{display:block;color:#694d41;font-size:11px;overflow-wrap:anywhere}
+#recruit-estimate strong{font:700 19px var(--mono);color:#783e30}
+.recruit-submit .action:disabled{opacity:.58}
+.recruit-post-roles,.recruit-post-actions{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.recruit-post-actions button{font-size:12px}
+.recruit-ticket,.recruit-queue{display:grid;gap:3px;min-width:0}
+.recruit-ticket{padding:8px;margin:8px 0;background:#503b49;border:1px solid #805967;box-shadow:inset 0 1px #956c74;color:#ffebd3}
+.recruit-ticket .recruit-countdown-caption{display:flex;align-items:baseline;justify-content:space-between;gap:4px}
+.recruit-ticket small{color:#e8cab9;font-size:11px}
+.recruit-ticket .recruit-countdown-clock{font:700 23px/1 var(--mono);color:#ffdbab}
+.recruit-queue{flex:0 0 62px;text-align:right;color:#743c33}
+.recruit-queue .recruit-countdown-clock{font:700 12px var(--mono);white-space:nowrap}
+.recruit-progress{display:block;width:100%;height:9px;appearance:none;background:#ccb099;border:1px solid #b38875;accent-color:#9f5748}
+.recruit-queue .recruit-progress{height:5px}
+.recruit-progress::-webkit-progress-bar{background:#ccb099}
+.recruit-progress::-webkit-progress-value{background:#9f5748;transition:width .2s ease-out}
+.recruit-progress::-moz-progress-bar{background:#9f5748}
+.recruit-ticket .recruit-progress,.recruit-ticket .recruit-progress::-webkit-progress-bar{background:#332836;border-color:#9e756e}
+.recruit-ticket .recruit-progress::-webkit-progress-value{background:#e2a780}
+.recruit-ticket .recruit-progress::-moz-progress-bar{background:#e2a780}
+.recruit-ticket[data-finished=true]{opacity:.75}
+.candidate .role-chip{margin-right:5px}
+@media(max-width:440px){
+  #recruit-form{padding:9px;gap:7px}.recruit-head{padding:10px}.recruit-role-fields{padding:5px}#recruit-role-options{gap:5px}
+  .recruit-role-cards{gap:2px}.recruit-form .recruit-role-card{min-height:31px}.recruit-role-card .role-chip{min-width:0;padding-inline:2px}
+  .recruit-submit{align-items:flex-start}.recruit-submit .dialog-actions{flex-wrap:nowrap}.recruit-submit button{padding-inline:5px;white-space:nowrap;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.recruit-progress::-webkit-progress-value{transition:none}}

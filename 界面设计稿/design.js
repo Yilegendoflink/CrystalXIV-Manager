@@ -540,6 +540,7 @@ function renderCalendar() {
   $('#qo-confirm').disabled = calendar.finished;
   if(playingCrystal&&typeof campaign!=='undefined')refreshCookControls();
   if(typeof renderManagerTool==='function')renderManagerTool(phase,locked);
+  renderRecruitCountdowns();
 }
 
 function advanceCalendar(action, post = action === 'promote' ? promotionTarget() : undefined, fromRaid = false) {
@@ -678,7 +679,7 @@ function drawMembers() {
       const link = element(detail, 'button', '去 NGE 招募', 'plain');
       link.type = 'button'; link.dataset.app = 'nge';
       link.onclick = () => {
-        $('#recruit-form').elements.seat.value = seats[memberIndex].role;
+        setRecruitSeats([seats[memberIndex].role]);
         currentBoard = 'recruit'; postIndex = 0; drawForum();
       };
       return;
@@ -941,14 +942,16 @@ function resetScenario(next, empty = false) {
 }
 
 function arrivalText(hour) {
-  const day = Math.floor(hour / 24) + 1;
-  const time = hour % 24;
-  if (time < 2) return `第 ${day - 1} 天 · ${activityTime(time + 24)}`;
-  return time < 10 ? `第 ${day} 天 ${timeText(time)} 到期，10:00 可查看` : `第 ${day} 天 ${timeText(time)}`;
+  const total = Math.round(hour*60), day = Math.floor(total/1440)+1;
+  const minute = total%1440, slot = Math.floor(minute/60);
+  const clock = timeText(slot).slice(0,-2)+String(minute%60).padStart(2,'0');
+  if (slot < 2) return `第 ${day - 1} 天 · 次日 ${clock}`;
+  return slot < 10 ? `第 ${day} 天 ${clock} 到期，10:00 可查看` : `第 ${day} 天 ${clock}`;
 }
 
-function createCandidate(post) {
-  const seat = post.seat;
+function recruitSeats(post) { return post.roles===undefined?[post.seat]:post.roles; }
+
+function createCandidate(post, seat) {
   const names = recruitmentNames[seat];
   const taken = name => candidateFiles.has(name) || rosterMembers().has(name) || (name === reserve.name && !recruitedStart);
   const unused = names.filter(name => !taken(name));
@@ -978,23 +981,28 @@ function renderPromotion() {
   const select = $('#promote-post');
   const value = select.value;
   select.replaceChildren();
-  activePosts().forEach((post,i) => { element(select,'option',`${post.title} · ${post.seat}`).value = i; });
+  activePosts().forEach((post,i) => { element(select,'option',`${post.title} · ${recruitSeats(post).join(' / ')}`).value = i; });
   if (value && activePosts()[Number(value)]) select.value = value;
   if (!activePosts().length) element(select,'option','暂无生效招募帖').value = '';
   select.disabled = calendar.finished || !activePosts().length;
 }
 
 function updateRecruitments() {
+  const now=Math.round(campaignHour()*60);
+  let updated=false;
   for (const post of activePosts()) {
-    while (!calendar.finished && post.due <= absoluteHour()) {
+    const roles = recruitSeats(post);
+    while (!calendar.finished && Math.round(post.due*60) <= now) {
       const count = 2 + Math.floor(randomValue() * 4);
-      const candidates = Array.from({ length: count }, () => createCandidate(post));
+      const offset = post.batches.reduce((total,batch)=>total+batch.length,0);
+      const candidates = Array.from({ length: count }, (_,i) => createCandidate(post, roles[(offset+i)%roles.length]));
       post.batches.push(candidates);
       post.batchIndex = post.batches.length - 1;
       post.due += post.duration ?? 6;
+      updated=true;
     }
   }
-  if (currentBoard === 'recruit') drawForum();
+  if ((updated||calendar.finished) && currentBoard === 'recruit') drawForum();
 }
 
 function enroll(candidate) {
@@ -1007,20 +1015,53 @@ function enroll(candidate) {
   toast(`${candidate.name}已入队，队伍 ${rosterSize()}/${rosterLimit} 人。`);
 }
 
+function addRecruitCountdown(parent,index,compact=false) {
+  const box=element(parent,compact?'span':'section',null,compact?'recruit-queue':'recruit-ticket');
+  box.dataset.recruitCountdown=index;
+  const caption=element(box,'span',null,'recruit-countdown-caption');
+  if(!compact)element(caption,'small',null,'recruit-countdown-label');
+  element(caption,'strong',null,'recruit-countdown-clock');
+  const meter=element(box,'progress',null,'recruit-progress');
+  meter.setAttribute('aria-label','招募批次进度');
+  if(!compact)element(box,'small',null,'recruit-countdown-due');
+}
+
+function renderRecruitCountdowns() {
+  const promote=$('#forum-detail [data-recruit-promote]');
+  if(promote)promote.disabled=calendar.finished||calendarLocked()||(playingCrystal&&campaign.minutes>0);
+  for(const box of $$('[data-recruit-countdown]')){
+    const post=boards.recruit[Number(box.dataset.recruitCountdown)];
+    if(!post?.batches)continue;
+    const remaining=Math.max(0,Math.round((post.due-campaignHour())*60));
+    const clock=box.querySelector('.recruit-countdown-clock');
+    const label=box.querySelector('.recruit-countdown-label');
+    const due=box.querySelector('.recruit-countdown-due');
+    const meter=box.querySelector('progress');
+    const duration=(post.duration??6)*60;
+    clock.textContent=calendar.finished?'已停止':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
+    meter.max=duration;meter.value=Math.max(0,duration-remaining);
+    if(label)label.textContent=post.batches.length?'距下一批候选':'距首批候选';
+    if(due)due.textContent=calendar.finished?'本轮招募已停止':`${arrivalText(post.due)} · 每批 ${duration/60} 小时`;
+    box.dataset.finished=String(calendar.finished);
+  }
+}
+
 function drawForum() {
   const list = $('#forum-posts');
   const posts = currentBoard === 'recruit' ? [...boards.recruit,...forumRecruitPosts] : boards[currentBoard];
   list.replaceChildren();
   $('#board-title').textContent = `${{news:'游戏新闻',general:'玩家交流',recruit:'固定队招募'}[currentBoard]} · ${posts.length} 个主题`;
   $$('[data-board]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.board === currentBoard)));
-  posts.forEach(({ title, tag, author }, index) => {
+  posts.forEach((topicData, index) => {
+    const {title,tag,author,batches}=topicData;
     const button = element(list, 'button', null, 'forum-post');
     button.type = 'button';
     button.setAttribute('aria-pressed', String(postIndex === index));
     const topic = element(button,'span',null,'topic-title');
     element(topic,'strong',title);
-    element(topic,'small',author ?? (posts[index].batches ? '经理 · 我的帖子' : 'NGE 站务'));
-    element(button, 'small', posts[index].batches?.length ? `${posts[index].batches.length} 批` : tag);
+    element(topic,'small',batches?`${recruitSeats(topicData).join(' / ')} · ${batches.length?`已到 ${batches.length} 批`:'等待首批'}`:author??'NGE 站务');
+    if(batches)addRecruitCountdown(button,index,true);
+    else element(button,'small',tag);
     button.addEventListener('click', () => {
       postIndex = index;
       drawForum();
@@ -1030,7 +1071,7 @@ function drawForum() {
   const panel = $('#forum-detail');
   panel.replaceChildren();
   const post = posts[postIndex];
-  if (!post) return;
+  if (!post) {renderRecruitCountdowns();return;}
   element(panel, 'h2', post.title);
   element(panel,'p',post.author ?? (post.batches ? '经理 · 我的帖子' : 'NGE 站务'),'forum-byline');
   element(panel, 'p', post.text);
@@ -1039,24 +1080,20 @@ function drawForum() {
     element(reply,'strong','1 楼');
     element(reply,'p',post.reply);
   }
-  if (!post.batches) return;
-  const remaining = Math.max(0, post.due - absoluteHour());
-  if (post.duration) {
-    const info = [`每批 ${post.duration} 小时`];
-    if (post.traits.length) info.push(`锁定其一：${post.traits.join('、')}`);
-    if (post.attribute) info.push(`${recruitAttributes[post.attribute]} ≥${post.minimum}`);
-    element(panel,'p',info.join(' · '));
-    const meter = element(panel,'progress',null,'recruit-progress');
-    meter.max = post.duration; meter.value = Math.max(0, post.duration-remaining);
-    meter.setAttribute('aria-label','招募进度');
-  }
-  element(panel, 'p', calendar.finished ? '本轮招募已停止。' : `剩余 ${remaining} 小时 · ${arrivalText(post.due)}`);
-  const promote = element(panel,'button','挂游戏招募 · 2 小时','action');
+  if (!post.batches) {renderRecruitCountdowns();return;}
+  const positions=element(panel,'div',null,'recruit-post-roles');
+  for(const role of recruitSeats(post))chip(positions,role);
+  addRecruitCountdown(panel,postIndex);
+  const filters=[post.traits?.length?`锁定其一 ${post.traits.join('、')}`:'',post.attribute?`${recruitAttributes[post.attribute]} ≥ ${post.minimum}`:''].filter(Boolean);
+  if(filters.length)element(panel,'p',filters.join(' · '));
+  const actions=element(panel,'div',null,'recruit-post-actions');
+  const promote = element(actions,'button','挂游戏招募 · 2 小时','action');
   promote.type = 'button';
-  promote.disabled = calendar.finished || (playingCrystal && campaign.minutes>0);
+  promote.dataset.recruitPromote='';
   promote.onclick = () => advanceCalendar('promote',post);
+  renderRecruitCountdowns();
   if (!post.batches.length) {
-    const clock = element(panel, 'button', '打开日程，推进游戏时间', 'plain');
+    const clock = element(actions, 'button', '打开日程', 'plain');
     clock.type = 'button';
     clock.dataset.calendar = '';
     return;
@@ -1076,7 +1113,8 @@ function drawForum() {
   for (const candidate of post.batches[post.batchIndex]) {
     const row = element(panel, 'div', null, 'candidate');
     const body = element(row, 'div', null);
-    element(body, 'strong', `${post.seat} ${candidate.name}`);
+    chip(body,candidate.role);
+    element(body,'strong',candidate.name);
     element(body, 'small', candidate.hours.map(slotText).join(' / '));
     element(body, 'small', candidate.revealed
       ? `执行 ${candidate.execution} · 特质 ${candidate.trait}` : `执行约 ${Math.max(0,candidate.execution - 7)}–${Math.min(100,candidate.execution + 7)} · 特质待核实`);
@@ -1126,10 +1164,33 @@ $('#calendar-recruit').addEventListener('click', () => {
   showApp('nge');
 });
 
-$('#open-recruit').addEventListener('click', () => { if (!calendar.finished) $('#recruit-dialog').showModal(); });
+$('#open-recruit').addEventListener('click', () => {
+  if(calendar.finished)return;
+  renderRecruitEstimate();$('#recruit-dialog').showModal();
+});
 $('#cancel-recruit').addEventListener('click', () => $('#recruit-dialog').close());
 const recruitForm = $('#recruit-form');
 const traitOptions = $('#recruit-trait-options');
+const roleOptions = $('#recruit-role-options');
+for(const [group,roles] of [['坦克',['MT','ST']],['治疗',['H1','H2']],['输出',['D1','D2','D3','D4']]]){
+  const section=element(roleOptions,'div',null,'recruit-role-group');
+  element(section,'strong',group);
+  const cards=element(section,'div',null,'recruit-role-cards');
+  for(const role of roles){
+    const label=element(cards,'label',null,'recruit-role-card');
+    const input=element(label,'input',null);
+    input.type='checkbox';input.name='seat';input.value=role;input.defaultChecked=role==='H2';
+    chip(label,role);
+  }
+}
+function setRecruitSeats(roles){
+  for(const input of roleOptions.querySelectorAll('input'))input.checked=roles.includes(input.value);
+  renderRecruitEstimate();
+}
+$('#recruit-all-roles').onclick=()=>{
+  const selected=new FormData(recruitForm).getAll('seat');
+  setRecruitSeats(selected.length===seats.length?[]:seats.map(member=>member.role));
+};
 for (const [key, {label, minimum, extra}] of Object.entries(recruitGrades)) {
   element(recruitForm.elements.quality, 'option', `${label} · ≥${minimum} · +${extra} 小时`).value = key;
 }
@@ -1149,23 +1210,28 @@ function recruitConditions() {
 function renderRecruitEstimate() {
   recruitForm.elements.quality.disabled = !recruitForm.elements.attribute.value;
   const {traits,duration} = recruitConditions();
+  const roles=new FormData(recruitForm).getAll('seat');
   for (const checkbox of traitOptions.querySelectorAll('input')) checkbox.disabled = traits.length >= 3 && !checkbox.checked;
   const incomplete = traits.length !== 0 && traits.length !== 3;
-  recruitForm.querySelector('[type=submit]').disabled = incomplete;
-  $('#recruit-estimate').textContent = incomplete ? `再选 ${3-traits.length} 项特质，或清空选择。` : `每批 ${duration} 小时 · 挂游戏招募可额外推进 2 小时`;
+  recruitForm.querySelector('[type=submit]').disabled = incomplete||!roles.length;
+  $('#recruit-seat-count').textContent=`已选 ${roles.length} / ${seats.length} 席`;
+  $('#recruit-all-roles').textContent=roles.length===seats.length?'清空':'全选';
+  $('#recruit-extra').textContent=duration===4?'选填':`+${duration-4} 小时`;
+  $('#recruit-hours').textContent=`${duration} 小时`;
+  $('#recruit-eta').textContent=!roles.length?'至少选择一个席位':incomplete?`再选 ${3-traits.length} 项特质，或清空选择。`:`首批预计 · ${arrivalText(campaignHour()+duration)}`;
 }
 recruitForm.addEventListener('change',renderRecruitEstimate);
 renderRecruitEstimate();
 $('#recruit-form').addEventListener('submit', event => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
-  const seat = form.get('seat');
+  const roles = form.getAll('seat');
   const title = form.get('title').trim();
   const time = form.get('time').trim();
   const hour = daySlots.find(value => slotText(value) === time);
   const conditions = recruitConditions();
-  if (!title || hour === undefined || !recruitmentNames[seat] || (conditions.traits.length && conditions.traits.length !== 3) || calendar.finished) return;
-  boards.recruit.unshift({ title, tag: `${seat} · 等待中`, text: `招募 ${seat} · 目标档期 ${time}`, seat, hour, ...conditions, due: absoluteHour() + conditions.duration, batches: [], batchIndex: 0 });
+  if (!title || hour === undefined || !roles.length || roles.some(role=>!Object.hasOwn(recruitmentNames,role)) || (conditions.traits.length && conditions.traits.length !== 3) || calendar.finished) return;
+  boards.recruit.unshift({title,tag:'等待首批',text:`目标档期 ${time}`,roles,hour,...conditions,due:campaignHour()+conditions.duration,batches:[],batchIndex:0});
   currentBoard = 'recruit';
   postIndex = 0;
   $('#recruit-dialog').close();

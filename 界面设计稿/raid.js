@@ -77,7 +77,7 @@ function resetCookPlayback(){
   showingResolve=false;
   $('#cook-event-feed').replaceChildren();element($('#cook-event-feed'),'li','队伍准备中。');
   feedFrame?.remove();feedFrame=null;broadcastReady=false;
-  $('#stream-picture').hidden=false;
+  $('#stream-offline').hidden=false;
 }
 function advanceRaidMinutes(minutes){
   const session=sessionForToday();
@@ -90,6 +90,7 @@ function advanceRaidMinutes(minutes){
     if(!raidPlayback.active)appendCookEvent('达到 02:00 的活动截止，本晚已收队。','02:00');
     return;
   }
+  if(campaign.minutes>0)updateRecruitments();
   if(session.elapsed>=session.nextDecision || remainingRaidMinutes()<maximumPullMinutes)session.decision=true;
 }
 function canUseRaidBreak(minutes){
@@ -326,14 +327,18 @@ function resolveCampaignPull(){
 }
 function showRaidBroadcast(){
   const log=campaign.last;
+  const live=raidPlayback.active;
   const box=$('#raid-report');box.replaceChildren();
   $('#stream-start-raid').textContent='开怪';
+  $('#stream-offline').hidden=live;
+  if(feedFrame)feedFrame.hidden=!live;
   if(!log){
-    feedFrame?.remove();feedFrame=null;broadcastReady=false;$('#stream-picture').hidden=false;
+    $('#stream-stage').textContent='待开怪';
+    $('#stream-overlay').textContent='炎帝陵';
     element(box,'p','遇见机制后，Doc 会记录该项并开始积累探明度。');return;
   }
   $('#stream-overlay').textContent='第 '+log.number+' 把 · 攻略修订 '+log.revision;
-  if(raidPlayback.active){
+  if(live){
     const current=log.steps[raidPlayback.index];
     $('#stream-stage').textContent=current?`P${current.p+1} · ${current.title}`:'开怪准备';
     element(box,'p','本把结束后可查看完整战报。');
@@ -348,9 +353,9 @@ function showRaidBroadcast(){
       row.className=step.success?'passed':'missed';
     }
   }
-  if(!feedFrame){
-    feedFrame=document.createElement('iframe');feedFrame.title='炎帝陵战斗回放';feedFrame.src='../index.html?screen';
-    $('#stream-picture').hidden=true;$('.stream-frame').prepend(feedFrame);
+  if(live&&!feedFrame){
+    feedFrame=document.createElement('iframe');feedFrame.title='炎帝陵战斗画面';feedFrame.src='../index.html?screen';
+    $('.stream-frame').prepend(feedFrame);
   }
   syncCookFrame();
 }

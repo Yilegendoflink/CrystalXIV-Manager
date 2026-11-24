@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="./raid.css">
   <link rel="stylesheet" href="./doc.css">
   <link rel="stylesheet" href="./manager.css">
+  <link rel="stylesheet" href="./recruit.css">
 </head>
 <body>
   <main>
@@ -166,7 +167,7 @@
             <header class="pane-head"><div><h2>开荒指挥台</h2><p id="cook-clock"></p></div><div class="speaking"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span id="cook-speaker">白脊发言中</span></div></header>
             <div class="cook-observer">
               <div class="stream-main">
-                <div class="stream-frame"><img id="stream-picture" src="./assets/yandiling-breath.png" alt="炎帝陵观战画面"></div>
+                <div class="stream-frame"><div id="stream-offline" class="stream-offline"><strong>OFFLINE</strong><small>暂无战斗画面</small></div></div>
                 <div class="stream-caption"><div><h3 id="stream-stage">等待指挥</h3><p id="stream-attendance"></p></div><div><span class="pill" id="stream-ready">0/8 已确认</span><small id="stream-overlay">炎帝陵 · 待开怪</small></div></div>
               </div>
               <aside class="cook-events" aria-label="实时事件">
@@ -260,17 +261,19 @@
   </dialog>
 
   <dialog id="recruit-dialog" aria-labelledby="recruit-title">
-    <h2 id="recruit-title">发布招募帖</h2>
-    <p>按席位和档期招募，每批收到 2–5 名候选。</p>
+    <header class="recruit-head"><div><small>NGE / 固定队招募</small><h2 id="recruit-title">发布招募帖</h2></div><span id="recruit-seat-count"></span></header>
     <form id="recruit-form" class="recruit-form">
-      <label>招募席位<select name="seat"><option>H2</option><option>MT</option><option>ST</option><option>H1</option><option>D1</option><option>D2</option><option>D3</option><option>D4</option></select></label>
-      <label>开荒档期<select name="time"><option>20:00–22:00</option><option>22:00–24:00</option><option>次日 00:00–02:00</option><option>18:00–20:00</option><option>16:00–18:00</option><option>14:00–16:00</option><option>12:00–14:00</option><option>10:00–12:00</option></select></label>
-      <label>帖子标题<input name="title" required maxlength="42" value="炎帝陵固定队招募"></label>
-      <fieldset class="recruit-trait-fields"><legend>天生特质 · 选满三项加 2 小时</legend><p>每名候选至少具备其中一项。留空则按普通条件招募。</p><div id="recruit-trait-options"></div></fieldset>
-      <div class="recruit-ratings"><label>指定属性<select name="attribute"><option value="">不限</option><option value="execution">执行</option><option value="coordination">协作</option><option value="reaction">应变</option><option value="technique">手法</option><option value="aptitude">资质</option></select></label>
-      <label>保底等级<select name="quality" disabled></select></label></div>
-      <p id="recruit-estimate" role="status"></p>
-      <footer class="dialog-actions"><button class="plain" id="cancel-recruit" type="button">取消</button><button type="submit" class="action">发布招募帖</button></footer>
+      <div class="recruit-basics">
+        <label>帖子标题<input name="title" required maxlength="42" value="炎帝陵固定队招募"></label>
+        <label>开荒档期<select name="time"><option>20:00–22:00</option><option>22:00–24:00</option><option>次日 00:00–02:00</option><option>18:00–20:00</option><option>16:00–18:00</option><option>14:00–16:00</option><option>12:00–14:00</option><option>10:00–12:00</option></select></label>
+      </div>
+      <fieldset class="recruit-role-fields"><legend>招募席位</legend><div id="recruit-role-options"></div><footer><p>每批共 2–5 人，已选席位轮流出候选。</p><button type="button" id="recruit-all-roles" class="plain">全选</button></footer></fieldset>
+      <details class="recruit-filters"><summary><span>筛选条件</span><small id="recruit-extra"></small></summary>
+        <fieldset class="recruit-trait-fields"><legend>天生特质</legend><p>可选三项，候选至少具备其中一项。</p><div id="recruit-trait-options"></div></fieldset>
+        <div class="recruit-ratings"><label>指定属性<select name="attribute"><option value="">不限</option><option value="execution">执行</option><option value="coordination">协作</option><option value="reaction">应变</option><option value="technique">手法</option><option value="aptitude">资质</option></select></label>
+        <label>保底等级<select name="quality" disabled></select></label></div>
+      </details>
+      <footer class="recruit-submit"><div id="recruit-estimate" role="status"><small id="recruit-eta"></small><strong id="recruit-hours"></strong></div><div class="dialog-actions"><button class="plain" id="cancel-recruit" type="button">取消</button><button type="submit" class="action">发布招募帖</button></div></footer>
     </form>
   </dialog>
   <dialog id="calendar-dialog" aria-labelledby="calendar-title">

@@ -71,8 +71,9 @@ function validateCampaign(save){
   for(const post of d.posts){
     if(!post||typeof post.title!=='string')throw new Error('招募记录无效。');
     if(!post.batches)continue;
-    if(!Object.hasOwn(recruitmentNames,post.seat)||!Number.isFinite(post.due)||post.due<0||
-      !Array.isArray(post.batches)||post.batches.some(batch=>!Array.isArray(batch)||batch.some(m=>!m||!d.candidates.some(c=>c.name===m.name)))||
+    const roles=recruitSeats(post);
+    if(!Array.isArray(roles)||!roles.length||new Set(roles).size!==roles.length||roles.some(role=>!Object.hasOwn(recruitmentNames,role))||!Number.isFinite(post.due)||post.due<0||
+      !Array.isArray(post.batches)||post.batches.some(batch=>!Array.isArray(batch)||batch.some(m=>!m||!d.candidates.some(c=>c.name===m.name&&roles.includes(c.role))))||
       (post.batches.length&&(!Number.isInteger(post.batchIndex)||!post.batches[post.batchIndex])))throw new Error('招募记录无效。');
     if(post.duration!==undefined&&(
       !daySlots.includes(post.hour)||!Array.isArray(post.traits)||![0,3].includes(post.traits.length)||
