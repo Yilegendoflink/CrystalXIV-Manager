@@ -1,0 +1,9 @@
+.cook-risk-note{margin:6px 0;padding:6px 8px;border:1px solid #826b7b;border-left:3px solid #d5a17a;background:#383145;color:#f3d8b5;font-size:12px}
+.cook-risk-note[data-pressure=true]{border-left-color:#df8a7d;background:#4a3545;color:#ffddbd}
+.incident-card{margin:6px 0;padding:7px 9px;border:1px solid #bd9a84;border-left:3px solid #9c5c4c;background:#f3e0cd;color:#59403b;font-size:12px}
+.incident-card p{margin:2px 0}.incident-card small{color:#705247}
+.cook .incident-card{border-color:#977480;border-left-color:#e59a86;background:#453547;color:#ffe1c1}.cook .incident-card small{color:#dec0bc}
+.incident-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.incident-actions button{padding:3px 7px;font-size:12px}
+#cook-risk-dialog{border-color:#93645e}#cook-risk-dialog h2{color:#7f463c}
+#cook-risk-members{margin:8px 0;padding:6px 8px 6px 26px;background:#eddbc7;border-left:2px solid #b16c60;color:#684338;font-size:13px}
+#cook-risk-dialog footer{margin-top:9px}

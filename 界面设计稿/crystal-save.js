@@ -36,6 +36,10 @@ function validateCampaign(save){
   if(c.discovery!==undefined&&(!c.discovery||Array.isArray(c.discovery)||typeof c.discovery!=='object'||
     Object.entries(c.discovery).some(([id,value])=>!guideNodeIds.includes(id)||!Number.isFinite(value)||value<0||value>100)))throw new Error('机制探明记录无效。');
   if(c.gil!==undefined&&(!Number.isSafeInteger(c.gil)||c.gil<0))throw new Error('Gil 余额无效。');
+  if(c.incident!==undefined&&(!c.incident||!Object.hasOwn(incidentRules,c.incident.kind)||!Array.isArray(c.incident.names)||
+    c.incident.names.length!==2||new Set(c.incident.names).size!==2||c.incident.names.some(name=>typeof name!=='string'||!name)))throw new Error('队务事件记录无效。');
+  if((c.lastIncidentAttempt!==undefined&&(!Number.isSafeInteger(c.lastIncidentAttempt)||c.lastIncidentAttempt<0||c.lastIncidentAttempt>c.attempts))||
+    (c.lastIncidentDay!==undefined&&(!Number.isInteger(c.lastIncidentDay)||c.lastIncidentDay<1||c.lastIncidentDay>21)))throw new Error('队务事件时间无效。');
   for(const [key,slot] of Object.entries(c.plan)){
     const parts=/^(\d+)-(\d+)(?:#(\d+))?$/.exec(key);
     const mechanic=parts&&phases[parts[1]]?.[parts[2]];

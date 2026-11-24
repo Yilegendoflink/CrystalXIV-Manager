@@ -51,6 +51,9 @@ const mechanicSeconds=(key,p)=>key==='roar'?20:key==='cone'?6+2*p:key==='end'?0:
 const maximumPullMinutes=2+Math.ceil(phases.reduce((total,phase,p)=>total+phase.reduce((seconds,key)=>seconds+mechanicSeconds(key,p),0),0)/60);
 
 function sessionForToday(){return campaign.session?.day===calendar.day?campaign.session:null;}
+function ensureRaidSession(){
+  return sessionForToday()??(campaign.session={day:calendar.day,end:appointmentEnd,originalEnd:appointmentEnd,elapsed:0,nextDecision:120,decision:false,ended:false});
+}
 function sharedAttendanceEnd(){
   const team=lineup();
   return daySlots.find(hour=>hour>=calendar.hour&&!team.every(member=>available(member,hour)))??recruitEndHours.at(-1);
@@ -80,6 +83,7 @@ function resetCookPlayback(){
   clearTimeout(revealTimer);resolveQueue.length=0;
   if(showingResolve)$('#resolve-film').close();
   showingResolve=false;
+  if($('#cook-risk-dialog').open)$('#cook-risk-dialog').close();
   $('#cook-event-feed').replaceChildren();element($('#cook-event-feed'),'li','队伍准备中。');
   feedFrame?.remove();feedFrame=null;broadcastReady=false;
   $('#stream-offline').hidden=false;
@@ -100,8 +104,14 @@ function advanceRaidMinutes(minutes){
 }
 function canUseRaidBreak(minutes){
   const session=sessionForToday();
-  return session&&!session.ended&&!campaign.clear&&!raidPlayback.active&&!showingResolve&&
-    remainingRaidMinutes()>=minutes&&lineup().some(gameOnline);
+  return !session?.ended&&!campaign.clear&&!raidPlayback.active&&!showingResolve&&duringAppointment()&&
+    remainingRaidMinutes()>=minutes&&lineup().every(gameOnline);
+}
+function canReviewPull(){
+  const log=campaign.last;
+  if(!log||log.clear||log.reviewed)return false;
+  const day=Number.isFinite(log.started)?Math.floor((log.started-10)/24)+1:sessionForToday()?.day;
+  return day===calendar.day&&canUseRaidBreak(5);
 }
 function canDelayShift(){
   const session=sessionForToday();
@@ -118,8 +128,8 @@ function refreshCookControls(){
   $('#cook-stop').hidden=!session||session.ended||campaign.clear||Boolean(session.decision);
   $('#cook-stop').disabled=raidPlayback.active||showingResolve;
   $('#cook-skip').hidden=!raidPlayback.active;
-  $('#cook-review').disabled=!campaign.last||campaign.last.clear||campaign.last.reviewed||!canUseRaidBreak(5);
-  $('#cook-short-rest').disabled=!canUseRaidBreak(10);
+  $('#cook-review').disabled=!canReviewPull();
+  $('#cook-short-rest').disabled=!canUseRaidBreak(shortRestMinutes);
   $('#stream-start-raid').disabled=Boolean(challengeBlock())||showingResolve;
 }
 function finishShift(message){
@@ -153,7 +163,8 @@ for(const button of $$('[data-shift]'))button.onclick=()=>{
 $('#cook-stop').onclick=()=>finishShift('经理决定在本把结算后收队。');
 $('#cook-review').onclick=()=>{
   const log=campaign.last;
-  if(!log||log.clear||log.reviewed||!canUseRaidBreak(5))return;
+  if(!canReviewPull())return;
+  ensureRaidSession();
   const failed=log.steps.at(-1),members=lineup().filter(gameOnline),at=campaignHour()+5/60;
   log.reviewed=true;
   for(const member of members){
@@ -219,7 +230,7 @@ function recordDiscovery(p,i,survivalFraction,learningFactor){
 function resolveCampaignPull(){
   if(challengeBlock())return;
   showApp('cook');
-  if(!sessionForToday())campaign.session={day:calendar.day,end:appointmentEnd,originalEnd:appointmentEnd,elapsed:0,nextDecision:120,decision:false,ended:false};
+  ensureRaidSession();
   raidPlayback.active=true;raidPlayback.index=-1;
   const team=lineup(), beforeChecks=pressureChecks.length;
   const learningFactor=discoveryLearningFactor(team);
@@ -305,7 +316,7 @@ function resolveCampaignPull(){
   }
   const final=log.steps.at(-1);
   const fresh=log.steps.length>campaign.best;
-  const signature=final.p+'-'+final.key;
+  const signature=final.p+'-'+final.key,repeated=previousWipe===signature;
   const minutes=2+Math.ceil(combatSeconds/60);
   log.minutes=minutes;log.reviewed=false;
   log.started=campaignHour();
@@ -315,13 +326,18 @@ function resolveCampaignPull(){
   else if(log.steps.some(s=>!s.correct&&s.defenseRoll<s.survival))combatAffinityEvent('rescue',team,team[2]);
   const ticks=Math.floor((campaign.minutes+minutes)/30)-Math.floor(campaign.minutes/30);
   if(ticks)settleRelationshipPressure(team,at-ticks/2,ticks);
+  const unresolved=incidentParticipants(team);
+  log.energyCost=pullEnergyCost(minutes);
   for(const m of team){
-    energy.set(m.name,Math.max(0,energyOf(m)-minutes*25/60));
+    energy.set(m.name,Math.max(0,energyOf(m)-log.energyCost));
     const traits=pressureOf(m).traits;
-    const stress=log.clear?-20:fresh?-12:previousWipe===signature&&!traits.includes('逆风耐心')?20:8;
+    const stress=log.clear?-20:fresh?-12:wipeStress(m,repeated);
     const overcame=traits.includes('逆风耐心')&&log.steps.some(s=>s.success&&s.p+'-'+s.key===previousWipe);
-    changePressure(m,stress-(overcame?10:0)+(!log.clear&&!final.correct&&team[final.slot]===m&&traits.includes('害怕背锅')?22:0),at);
+    const conflict=unresolved.includes(m.name)?incidentPullStress:0;
+    changePressure(m,stress+conflict-(overcame?10:0)+(!log.clear&&!final.correct&&team[final.slot]===m&&traits.includes('害怕背锅')?22:0),at);
   }
+  if(unresolved.length)log.unresolved=unresolved;
+  if(!log.clear)log.incident=rollRaidIncident(team,final,repeated,at);
   previousWipe=log.clear?null:signature;
   campaign.best=Math.max(campaign.best,log.steps.length);
   campaign.last=log;campaign.clear=log.clear;
@@ -376,6 +392,8 @@ function finishCookPlayback(log,checks){
   raidPlayback.index=log.steps.length-1;
   syncCookFrame();
   appendCookEvent(log.clear?'炎帝陵已首通。':`团灭 · ${log.steps.at(-1).title} · 本把用时 ${log.minutes} 分钟。`);
+  if(log.unresolved?.length)appendCookEvent(`争执未处理 · ${log.unresolved.join('、')}各增加 ${incidentPullStress} 压力。`);
+  if(log.incident)appendCookEvent(`队务事件 · ${log.incident}，可在 Cook 或 QO 处理。`);
   if(checks)appendCookEvent(`触发 ${checks} 次压力检定。`);
   if(!sessionForToday()&&campaign.session?.ended)appendCookEvent('达到 02:00 的活动截止，本晚已收队。','02:00');
   renderCalendar();drawVoice();showRaidBroadcast();refreshOpenGuide();nextResolve();
@@ -467,7 +485,7 @@ function revealResolve(){
 }
 function advanceResolve(){
   if(!revealed){revealResolve();return;}
-  clearTimeout(revealTimer);resolveQueue.shift();showingResolve=false;$('#resolve-film').close();nextResolve();refreshCookControls();
+  clearTimeout(revealTimer);resolveQueue.shift();showingResolve=false;$('#resolve-film').close();nextResolve();refreshCookControls();renderOperations();
 }
 $('#resolve-next').onclick=advanceResolve;
 $('#resolve-film').addEventListener('cancel',e=>{e.preventDefault();advanceResolve();});

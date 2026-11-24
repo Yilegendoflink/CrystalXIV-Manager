@@ -11,10 +11,12 @@
   <script src="./design.js" defer></script>
   <link rel="stylesheet" href="./qo.css">
   <script src="./raid.js" defer></script>
+  <script src="./operations.js" defer></script>
   <script src="./doc.js" defer></script>
   <script src="./manager.js" defer></script>
   <script src="./crystal-save.js" defer></script>
   <link rel="stylesheet" href="./raid.css">
+  <link rel="stylesheet" href="./operations.css">
   <link rel="stylesheet" href="./doc.css">
   <link rel="stylesheet" href="./manager.css">
   <link rel="stylesheet" href="./recruit.css">
@@ -138,6 +140,7 @@
           <div class="qo-chat">
             <header class="pane-head"><div><h2 id="qo-thread-title">炎帝陵固定队</h2><p id="qo-thread-note">队伍群聊 · 预定晚间开荒</p></div><div class="qo-tools"><span class="pill" id="qo-ready">7/8 已确认</span><button type="button" class="plain" id="qo-settings">群聊设置</button></div></header>
             <p id="qo-pin" class="pinned">群公告 · 先确认 H2，进语音后对一次换坦口令。</p>
+            <section id="qo-incident" class="incident-card" aria-label="待处理队务" hidden></section>
             <div id="qo-messages" class="messages" role="log" aria-label="会话消息"></div>
             <div id="qo-request" hidden></div>
             <div id="qo-talk-actions" class="qo-talk-actions" hidden>
@@ -183,6 +186,8 @@
               <button type="button" id="cook-short-rest">短休 · 10 分钟</button>
               <button type="button" id="cook-stop" hidden>本晚收队</button><button type="button" id="cook-skip" hidden>跳到结算</button>
             </div>
+            <section id="cook-risk-note" class="cook-risk-note" aria-label="继续开怪的风险" hidden></section>
+            <section id="cook-incident" class="incident-card" aria-label="待处理队务" hidden></section>
             <section id="cook-shift" hidden aria-labelledby="cook-shift-title">
               <strong id="cook-shift-title">本晚排班决定</strong><p id="cook-shift-note"></p>
               <div class="cook-controls"><button type="button" data-shift="early">提前收队</button><button type="button" data-shift="normal">按原计划</button><button type="button" data-shift="delay">延后两小时</button></div>
@@ -309,6 +314,17 @@
       </details>
       <footer class="recruit-submit"><div id="recruit-estimate" role="status"><small id="recruit-eta"></small><strong id="recruit-hours"></strong></div><div class="dialog-actions"><button class="plain" id="cancel-recruit" type="button">取消</button><button type="submit" class="action">发布招募帖</button></div></footer>
     </form>
+  </dialog>
+  <dialog id="cook-risk-dialog" aria-labelledby="cook-risk-title">
+    <h2 id="cook-risk-title">继续开怪可能触发压力检定</h2>
+    <p id="cook-risk-reason"></p><ul id="cook-risk-members"></ul>
+    <p>推进新进度通常会降低压力。压力达到 100 时，坚定信念与精神崩溃各有 50% 概率。</p>
+    <footer class="dialog-actions">
+      <button type="button" id="risk-rest" class="plain">先短休 · 10 分钟</button>
+      <button type="button" id="risk-mediate" class="plain">先调解 · 15 分钟</button>
+      <form method="dialog"><button class="plain">返回</button></form>
+      <button type="button" id="risk-pull" class="action">承受风险，开怪</button>
+    </footer>
   </dialog>
   <dialog id="calendar-dialog" aria-labelledby="calendar-title">
     <h2 id="calendar-title">本轮日程</h2>

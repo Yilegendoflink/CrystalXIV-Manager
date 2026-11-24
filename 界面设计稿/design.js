@@ -560,6 +560,7 @@ function renderCalendar() {
   $('#open-recruit').disabled = calendar.finished;
   $('#qo-confirm').disabled = calendar.finished;
   if(playingCrystal&&typeof campaign!=='undefined')refreshCookControls();
+  if(typeof renderOperations==='function')renderOperations();
   if(typeof renderManagerTool==='function')renderManagerTool(phase,locked);
   renderRecruitCountdowns();
 }
@@ -568,7 +569,7 @@ function advanceCalendar(action, post = action === 'promote' ? promotionTarget()
   if (calendar.finished || (action === 'raid' && challengeBlock())) return;
   if (playingCrystal && action === 'raid') {
     if ($('#calendar-dialog').open) $('#calendar-dialog').close();
-    resolveCampaignPull();
+    requestRaidPull();
     return;
   }
   if(!fromRaid&&calendarLocked()){
@@ -579,7 +580,7 @@ function advanceCalendar(action, post = action === 'promote' ? promotionTarget()
   const before = lineup().filter(gameOnline).length;
   const checkCount = pressureChecks.length;
   const at = absoluteHour() + 2;
-  let feedback = { wait: '已推进到下一时段。', intel: '已分析下一段副本情报。', scout: '候选档案已核实。' }[action];
+  let feedback = { wait: '已推进到下一时段。', intel: '已分析下一段副本情报。', scout: '候选档案已核实。', mediate:'已花两小时调解队内争执。' }[action];
   if (action === 'promote') {
     post.due -= 2;
     feedback = `已为「${post.title}」挂游戏招募。消耗 2 小时，招募额外推进 2 小时。`;
@@ -619,6 +620,7 @@ function advanceCalendar(action, post = action === 'promote' ? promotionTarget()
   $('#calendar-feedback').textContent = feedback;
   if (playingCrystal && typeof campaign !== 'undefined') campaign.minutes = 0;
   updateRecruitments();
+  if(playingCrystal&&!fromRaid&&action!=='mediate')rollManagementIncident();
   renderCalendar();
   drawVoice();
   return true;
@@ -789,7 +791,7 @@ function drawCookParty(){
     const opening=live?.partyStart[live.names.indexOf(member.name)];
     const elapsed=live ? Math.min(live.minutes*60,120+(live.steps[raidPlayback.index]?.seconds??0)) : 0;
     const pressure=opening?.pressure??pressureOf(member).value;
-    const stamina=Math.round(opening?Math.max(0,opening.energy-elapsed*25/3600):energyOf(member));
+    const stamina=Math.round(opening?Math.max(0,opening.energy-pullEnergyCost(elapsed/60)):energyOf(member));
     for(const [label,value,kind] of [['压力',pressure,'pressure'],['精力',stamina,'energy']]){
       const row=element(card,'div',null,'cook-party-meter '+kind);
       if(kind==='pressure'?value>=85||value<30:value<=50)row.dataset.warning='true';
@@ -1311,22 +1313,6 @@ $('#recruit-form').addEventListener('submit', event => {
 });
 
 const commandLog = [];
-
-$('#cook-short-rest').addEventListener('click', event => {
-  const message = event.currentTarget.textContent;
-  if (playingCrystal) {
-    if (!canUseRaidBreak(10)) return;
-    const at=campaignHour()+10/60;
-    lineup().filter(gameOnline).forEach(member => changePressure(member, -5, at));
-    advanceRaidMinutes(10);
-    renderCalendar();drawVoice();
-  }
-  commandLog.unshift(message);
-  appendCookEvent('指挥 · '+message);
-  addMessage('team', `Cook 指挥：${message}。`);
-  if(playingCrystal)persistCrystal();
-  toast('已记录提示，并同步到 QO。');
-});
 
 const pictograms = {
   doc: ['..AAAAA..','..ABBBBA.','..ACCCBA.','..ABBBBA.','..ACCCBA.','..ABBBBA.','..ACCABA.','..ABBBBA.','..AAAAAA.'],
