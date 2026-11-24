@@ -47,8 +47,12 @@ let campaign = newCampaign();
 let feedFrame=null, broadcastReady=false;
 const raidPlayback = {active:false,index:-1,timer:null};
 const eventStepMs=950;
-const mechanicSeconds=(key,p)=>key==='roar'?20:key==='cone'?6+2*p:key==='end'?0:12;
-const maximumPullMinutes=2+Math.ceil(phases.reduce((total,phase,p)=>total+phase.reduce((seconds,key)=>seconds+mechanicSeconds(key,p),0),0)/60);
+const preparationSeconds=120, maximumPullMinutes=20;
+const combatStepWeight=(key,p)=>key==='roar'?20:key==='cone'?6+2*p:key==='end'?0:12;
+// Spread the combat checks over 18 game minutes without changing how many attacks each check covers.
+const timelineWeight=(key,p)=>key==='end'?8:combatStepWeight(key,p);
+const totalTimelineWeight=phases.reduce((total,phase,p)=>total+phase.reduce((sum,key)=>sum+timelineWeight(key,p),0),0);
+const timelineSeconds=weight=>Math.round(weight*(maximumPullMinutes*60-preparationSeconds)/totalTimelineWeight);
 
 function sessionForToday(){return campaign.session?.day===calendar.day?campaign.session:null;}
 function ensureRaidSession(){
@@ -83,7 +87,6 @@ function resetCookPlayback(){
   clearTimeout(revealTimer);resolveQueue.length=0;
   if(showingResolve)$('#resolve-film').close();
   showingResolve=false;
-  if($('#cook-risk-dialog').open)$('#cook-risk-dialog').close();
   $('#cook-event-feed').replaceChildren();element($('#cook-event-feed'),'li','队伍准备中。');
   feedFrame?.remove();feedFrame=null;broadcastReady=false;
   $('#stream-offline').hidden=false;
@@ -237,16 +240,16 @@ function resolveCampaignPull(){
   const log={number:++campaign.attempts,revision:campaign.revision,names:team.map(m=>m.name),steps:[],clear:false,
     partyStart:team.map(member=>({pressure:pressureOf(member).value,energy:energyOf(member)}))};
   let hp=100, residual=0, lastOwner=-1, strain=0;
-  let partyHp=Array(8).fill(100), combatSeconds=0;
+  let partyHp=Array(8).fill(100), combatSeconds=0, progressWeight=0;
   let attackClock=0;
   const clampQ=v=>Math.min(98,Math.max(12,Math.round(v)));
   outer: for(const [p,phase] of phases.entries())for(const [i,key] of phase.entries()){
     const [title,task]=jobs[key],works=assignments(p,i,true),slot=works[0].slot,person=team[slot];
     const progress=campaign.discovery[mechanicId(p,i)]??0;
     const unavailable=key==='charge'||key==='nails'||key==='inferno';
-    const seconds=mechanicSeconds(key,p);
-    combatSeconds+=seconds;
-    attackClock=unavailable?0:attackClock+seconds;
+    const seconds=timelineSeconds(progressWeight+timelineWeight(key,p))-timelineSeconds(progressWeight);
+    progressWeight+=timelineWeight(key,p);
+    attackClock=unavailable?0:attackClock+combatStepWeight(key,p);
     const autos=Math.floor(attackClock/4);attackClock%=4;
     const practice=team.map(m=>{
       const page=campaign.mastery[m.name]??={};
@@ -289,6 +292,7 @@ function resolveCampaignPull(){
     if(!unavailable && key!=='end') hp-=Math.max(0,output/75*(correct?6.95:5.40));
     if(key==='end') hp-=output/75*(correct?4:2);
     const exposure=practice.map((_,j)=>fatal?(j===slot?.48:.76):chargeHits.includes(j)?.72:1);
+    combatSeconds+=fatal?Math.round(seconds*Math.max(...exposure)):seconds;
     const survivedSeconds=exposure.map(fraction=>seconds*fraction);
     const survivalFraction=seconds?survivedSeconds.reduce((sum,value)=>sum+value,0)/(team.length*seconds):1;
     const discovery=recordDiscovery(p,i,survivalFraction,learningFactor);
@@ -317,7 +321,7 @@ function resolveCampaignPull(){
   const final=log.steps.at(-1);
   const fresh=log.steps.length>campaign.best;
   const signature=final.p+'-'+final.key,repeated=previousWipe===signature;
-  const minutes=2+Math.ceil(combatSeconds/60);
+  const minutes=Math.ceil((preparationSeconds+combatSeconds)/60);
   log.minutes=minutes;log.reviewed=false;
   log.started=campaignHour();
   const at=log.started+minutes/60;
@@ -350,12 +354,11 @@ function showRaidBroadcast(){
   const log=campaign.last;
   const live=raidPlayback.active;
   const box=$('#raid-report');box.replaceChildren();
-  $('#stream-start-raid').textContent='开怪';
   $('#stream-offline').hidden=live;
   if(feedFrame)feedFrame.hidden=!live;
   if(!log){
     $('#stream-stage').textContent='待开怪';
-    $('#stream-overlay').textContent='炎帝陵';
+    $('#stream-overlay').textContent=`炎帝陵 · 完整一把 ${maximumPullMinutes} 分钟`;
     element(box,'p','遇见机制后，Doc 会记录该项并开始积累探明度。');return;
   }
   $('#stream-overlay').textContent='第 '+log.number+' 把 · 攻略修订 '+log.revision;
@@ -399,7 +402,7 @@ function finishCookPlayback(log,checks){
   renderCalendar();drawVoice();showRaidBroadcast();refreshOpenGuide();nextResolve();
 }
 function announceCookStep(log,step){
-  const time=cookClockTime(log.started,120+step.seconds);
+  const time=cookClockTime(log.started,preparationSeconds+step.seconds);
   const warning=step.fatal?' · 团灭':step.loss?' · '+step.loss+' 人中招':step.success?' · 顺利执行':' · 出现失误';
   const intel=step.discovery;
   const update=intel?.before===null?' · 初见，已记入 Doc':intel?.after>intel?.before?` · 探明度 ${intel.before}% → ${intel.after}%`:'';

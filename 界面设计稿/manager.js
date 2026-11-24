@@ -16,7 +16,7 @@ function renderManagerClock(){
   if(log){
     const step=log.steps[raidPlayback.index];
     day=Math.floor((log.started-10)/24)+1;
-    const elapsed=Math.round((log.started-(day-1)*24)*60)+(step?2+Math.floor(step.seconds/60):0);
+    const elapsed=Math.round((log.started-(day-1)*24)*60)+(step?Math.floor((preparationSeconds+step.seconds)/60):0);
     hour=Math.floor(elapsed/60);minutes=elapsed%60;
   }else{
     hour+=Math.floor(minutes/60);minutes%=60;

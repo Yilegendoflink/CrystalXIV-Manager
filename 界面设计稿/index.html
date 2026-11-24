@@ -198,7 +198,7 @@
             <h3 id="cook-channel-title" class="cook-section-title">开荒语音</h3>
             <div id="cook-roster" class="voice-grid" aria-label="频道成员状态"></div>
             <details id="cook-pressure-log" class="pressure-log" hidden><summary id="cook-pressure-summary"></summary><ul id="cook-pressure-events"></ul></details>
-            <footer class="cook-footer"><p id="cook-advice"></p><button id="cook-rest" type="button">建议短休</button></footer>
+            <footer class="cook-footer"><p id="cook-advice"></p></footer>
             <details class="film-preview"><summary>压力演出预览</summary><button type="button" data-film-preview="faith">坚定信念</button><button type="button" data-film-preview="collapse">精神崩溃</button></details>
           </div>
         </section>
@@ -257,7 +257,7 @@
               <li><div><h3>在 NGE 发招募帖</h3><p>打开 NGE，点击「发布招募帖」。选缺少的席位和开荒起止时间，比如 20:00–24:00。一张帖能招多个席位。基础招募每 4 游戏小时到一批，每批 2–5 人，已选席位轮流出候选。</p><p>用桌面经理工具推进时间，或跳到「最近招募结果」。在帖子里调查候选或直接招入，留意他们每天实际能来的时段。</p></div><button type="button" class="plain" data-app="nge">打开 NGE</button></li>
               <li><div><h3>在 QO 确定八席首发</h3><p>打开固定队群聊的「群聊设置」，给 MT、ST、H1、H2 和 D1–D4 各安排一名首发。队伍最多 12 人，多出的成员可留作候补。点队员资料查看能力、特质和档期。</p></div><button type="button" class="plain" data-app="qo">打开 QO</button></li>
               <li><div><h3>在日程里找八个人都能到的时间</h3><p>经理工具的「日程」会显示每个时段的首发出勤人数。把预约的起止时间设在连续显示 8/8 可出勤的窗口里。准备期结束后，可通过经理工具跳到「下次开荒」。</p></div><button type="button" class="plain" data-calendar>打开日程</button></li>
-              <li><div><h3>去 Cook 开怪、看战报</h3><p>第 8 天起，预约时段内首发八席到齐、共同出勤时间足够时，点击「开怪」。每把按游戏内实际用时推进。在 Cook 看机制播报、团血、压力和精力，团灭后可花 5 分钟复盘灭团机制。</p><p>两把之间也可以安排短休。累计两小时后可决定按计划进行、提前收队或延后。首次遇到的机制会记进 Doc，探明度达到 30% 后可以安排处理人。</p></div><button type="button" class="plain" data-app="cook">打开 Cook</button></li>
+              <li><div><h3>去 Cook 开怪、看战报</h3><p>第 8 天起，预约内八席到齐并有足够时间时，点击「开怪」。完整打一把用 20 个游戏分钟，提前团灭按实际进度计时。团灭后可花 5 分钟复盘。</p><p>压力风险直接显示在开怪按钮下方。两把之间可以短休，累计两小时后决定是否收队。首次遇到的机制会记入 Doc，探明度达到 30% 后可安排处理人。</p></div><button type="button" class="plain" data-app="cook">打开 Cook</button></li>
             </ol>
             <footer class="manual-footer"><span>在 Doc 可以查机制和特质的具体效果。</span><button type="button" class="plain" data-app="doc">打开 Doc</button></footer>
           </div>
@@ -314,17 +314,6 @@
       </details>
       <footer class="recruit-submit"><div id="recruit-estimate" role="status"><small id="recruit-eta"></small><strong id="recruit-hours"></strong></div><div class="dialog-actions"><button class="plain" id="cancel-recruit" type="button">取消</button><button type="submit" class="action">发布招募帖</button></div></footer>
     </form>
-  </dialog>
-  <dialog id="cook-risk-dialog" aria-labelledby="cook-risk-title">
-    <h2 id="cook-risk-title">继续开怪可能触发压力检定</h2>
-    <p id="cook-risk-reason"></p><ul id="cook-risk-members"></ul>
-    <p>推进新进度通常会降低压力。压力达到 100 时，坚定信念与精神崩溃各有 50% 概率。</p>
-    <footer class="dialog-actions">
-      <button type="button" id="risk-rest" class="plain">先短休 · 10 分钟</button>
-      <button type="button" id="risk-mediate" class="plain">先调解 · 15 分钟</button>
-      <form method="dialog"><button class="plain">返回</button></form>
-      <button type="button" id="risk-pull" class="action">承受风险，开怪</button>
-    </footer>
   </dialog>
   <dialog id="calendar-dialog" aria-labelledby="calendar-title">
     <h2 id="calendar-title">本轮日程</h2>

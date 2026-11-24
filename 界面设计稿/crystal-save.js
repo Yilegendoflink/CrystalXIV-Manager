@@ -32,7 +32,8 @@ function validateCampaign(save){
   if(c.session!==undefined&&(!c.session||!Number.isInteger(c.session.day)||c.session.day<8||c.session.day>21||
     !recruitEndHours.includes(c.session.end)||!recruitEndHours.includes(c.session.originalEnd)||
     !Number.isInteger(c.session.elapsed)||c.session.elapsed<0||!Number.isInteger(c.session.nextDecision)||
-    c.session.nextDecision<120||typeof c.session.decision!=='boolean'||typeof c.session.ended!=='boolean'))throw new Error('开荒时段记录损坏。');
+    c.session.nextDecision<120||typeof c.session.decision!=='boolean'||typeof c.session.ended!=='boolean'||
+    (c.session.incidentRaised!==undefined&&typeof c.session.incidentRaised!=='boolean')))throw new Error('开荒时段记录损坏。');
   if(c.discovery!==undefined&&(!c.discovery||Array.isArray(c.discovery)||typeof c.discovery!=='object'||
     Object.entries(c.discovery).some(([id,value])=>!guideNodeIds.includes(id)||!Number.isFinite(value)||value<0||value>100)))throw new Error('机制探明记录无效。');
   if(c.gil!==undefined&&(!Number.isSafeInteger(c.gil)||c.gil<0))throw new Error('Gil 余额无效。');

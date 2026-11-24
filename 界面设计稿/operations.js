@@ -38,13 +38,15 @@ function openTeamIncident(kind,members,at){
 }
 
 function rollRaidIncident(team,final,repeated,at){
-  if(teamIncident()||campaign.attempts<2||
+  const session=sessionForToday();
+  if(session?.incidentRaised||teamIncident()||campaign.attempts<2||
     (campaign.lastIncidentAttempt!==undefined&&campaign.attempts-campaign.lastIncidentAttempt<3))return null;
   const {couples,enemies}=relationshipPairs(team);
   const hasRelatedPair=couples.length>0||enemies.length>0;
   const highPressure=team.some(member=>pressureOf(member).value>=75);
   const likelihood=.26+(repeated ? .16 : 0)+(highPressure ? .12 : 0)+(hasRelatedPair ? .12 : 0);
   if(combatRandom()>=likelihood)return null;
+  if(session)session.incidentRaised=true;
   if(enemies.length&&combatRandom()<.7)return openTeamIncident('enemy',pickMember(enemies),at);
   if(couples.length&&combatRandom()<.7)return openTeamIncident('couple',pickMember(couples),at);
   const responsible=team[final.slot];
@@ -124,21 +126,14 @@ function nextPullRisks(team){
   }).filter(risk=>risk.pressure+risk.increase>=100);
 }
 
-function requestRaidPull(){
+function requestRaidPull(fromCalendar){
   if(challengeBlock()||showingResolve)return;
-  const risks=nextPullRisks(lineup());
-  if(!risks.length)return resolveCampaignPull();
-  showApp('cook');
-  $('#cook-risk-reason').textContent=previousWipe?'如果再次卡在同一机制，下列队员按当前状态可能触顶。':'如果这一把团灭，下列队员按当前状态可能触顶。';
-  const list=$('#cook-risk-members');list.replaceChildren();
-  for(const risk of risks)element(list,'li',`${risk.name} · 当前压力 ${risk.pressure} · 现有风险可能加 ${risk.increase}`);
-  $('#risk-rest').disabled=!canUseRaidBreak(shortRestMinutes);
-  $('#risk-mediate').hidden=!canMediate('raid');
-  $('#cook-risk-dialog').showModal();
-}
-
-for(const [id,action] of [['risk-rest',restRaidTeam],['risk-mediate',()=>mediateTeamIncident('raid')],['risk-pull',resolveCampaignPull]]){
-  $(`#${id}`).onclick=()=>{$('#cook-risk-dialog').close();action();};
+  if(fromCalendar&&nextPullRisks(lineup()).length){
+    showApp('cook');
+    $('#stream-start-raid').focus();
+    return;
+  }
+  resolveCampaignPull();
 }
 
 function renderIncidentCard(box,mode,incident){
@@ -164,6 +159,9 @@ function renderOperations(){
   const note=$('#cook-risk-note');
   note.hidden=true;
   if(!playingCrystal)return;
+  const pull=$('#stream-start-raid'),calendarPull=$('[data-clock-action=raid]');
+  pull.textContent='开怪';pull.removeAttribute('aria-describedby');
+  calendarPull.textContent='前往指挥并开怪';
   const incident=teamIncident();
   renderIncidentCard($('#cook-incident'),'raid',incident);
   renderIncidentCard($('#qo-incident'),'office',incident);
@@ -171,6 +169,11 @@ function renderOperations(){
   const team=lineup(), risks=nextPullRisks(team), tired=team.filter(member=>energyOf(member)<=50).length;
   note.hidden=!risks.length&&!tired;
   if(note.hidden)return;
+  pull.setAttribute('aria-describedby',note.id);
+  if(risks.length){
+    pull.textContent='冒险开怪';
+    calendarPull.textContent='前往 Cook 查看风险';
+  }
   note.dataset.pressure=String(Boolean(risks.length));
-  note.textContent=risks.length?`再次开怪有触顶风险 · ${risks.map(risk=>`${risk.name}（${risk.pressure} 压力）`).join('、')}`:`${tired} 人已进入疲劳。短休 ${shortRestMinutes} 分钟可恢复 ${shortRestEnergy} 精力。`;
+  note.textContent=risks.length?`团灭可能触发压力检定 · ${risks.map(risk=>`${risk.name}（${risk.pressure}，可能 +${risk.increase}）`).join('、')}`:`${tired} 人已进入疲劳。短休 ${shortRestMinutes} 分钟可恢复 ${shortRestEnergy} 精力。`;
 }

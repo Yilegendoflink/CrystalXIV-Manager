@@ -502,7 +502,7 @@ function challengeBlock() {
   if (!duringAppointment()) return `本时段未预约，本日约定为 ${timeWindowText(appointmentStart,appointmentEnd)}。`;
   const missing = lineup().filter(member => !available(member));
   if(missing.length)return `本时段无法出勤 · ${missing.map(member=>member.role).join('、')}`;
-  return playingCrystal&&remainingRaidMinutes()<maximumPullMinutes?'距全队共同出勤结束不足以开下一把。':'';
+  return playingCrystal&&remainingRaidMinutes()<maximumPullMinutes?`开怪需预留 ${maximumPullMinutes} 分钟共同出勤时间。`:'';
 }
 
 function calendarLocked() {
@@ -568,8 +568,9 @@ function renderCalendar() {
 function advanceCalendar(action, post = action === 'promote' ? promotionTarget() : undefined, fromRaid = false) {
   if (calendar.finished || (action === 'raid' && challengeBlock())) return;
   if (playingCrystal && action === 'raid') {
-    if ($('#calendar-dialog').open) $('#calendar-dialog').close();
-    requestRaidPull();
+    const fromCalendar=$('#calendar-dialog').open;
+    if (fromCalendar) $('#calendar-dialog').close();
+    requestRaidPull(fromCalendar);
     return;
   }
   if(!fromRaid&&calendarLocked()){
@@ -789,7 +790,7 @@ function drawCookParty(){
     const card=element(list,'article',null,'cook-party-card'),title=element(card,'header',null);
     chip(title,member.role);element(title,'strong',member.name);
     const opening=live?.partyStart[live.names.indexOf(member.name)];
-    const elapsed=live ? Math.min(live.minutes*60,120+(live.steps[raidPlayback.index]?.seconds??0)) : 0;
+    const elapsed=live ? Math.min(live.minutes*60,preparationSeconds+(live.steps[raidPlayback.index]?.seconds??0)) : 0;
     const pressure=opening?.pressure??pressureOf(member).value;
     const stamina=Math.round(opening?Math.max(0,opening.energy-pullEnergyCost(elapsed/60)):energyOf(member));
     for(const [label,value,kind] of [['压力',pressure,'pressure'],['精力',stamina,'energy']]){
@@ -871,11 +872,6 @@ $('#cook-mute').addEventListener('click', () => {
   muted = !muted;
   $('#cook-mute').setAttribute('aria-pressed', String(muted));
   $('#cook-mute').textContent = muted ? '麦克风 · 静音' : '麦克风 · 开启';
-});
-
-$('#cook-rest').addEventListener('click', () => {
-  addMessage('team', 'Cook 状态提示：建议大家先短休，再确认减伤分工。');
-  toast('短休建议已出现在 QO 群聊。');
 });
 
 function syncLineup() {
