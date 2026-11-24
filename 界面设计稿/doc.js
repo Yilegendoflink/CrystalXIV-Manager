@@ -2,8 +2,73 @@
 
 const guideNodeIds=phases.flatMap((phase,p)=>phase.map((_,i)=>mechanicId(p,i)));
 let guidePhase=0,guideIndex=0,guideSeat=0,guideWorkId=null;
+let docView='guide',traitGroup='all',selectedTrait=null;
+const traitIsActive=entry=>Object.hasOwn(activeTraitEffects,entry.name);
+const orderedTraits=[...traitCatalog].sort((a,b)=>Number(traitIsActive(b))-Number(traitIsActive(a)));
 
-function resetGuide(){guidePhase=0;guideIndex=0;guideSeat=0;guideWorkId=null;resetGuidePreview();}
+function resetGuide(){guidePhase=0;guideIndex=0;guideSeat=0;guideWorkId=null;docView='guide';updateDocView();resetGuidePreview();}
+
+function updateDocView(){
+  const isGuide=docView==='guide';
+  $('#doc-heading').textContent=isGuide?'炎帝陵攻略':'特质图鉴';
+  $('#doc-subtitle').textContent=isGuide?'Doc / 选择副本':'Doc / 队员资料';
+  $('#guide-head-actions').hidden=!isGuide;
+  $('#doc-guide').hidden=!isGuide;
+  $('#doc-traits').hidden=isGuide;
+  for(const button of $$('[data-doc-view]'))button.setAttribute('aria-pressed',String(button.dataset.docView===docView));
+}
+for(const button of $$('[data-doc-view]'))button.onclick=()=>{
+  if(docView===button.dataset.docView)return;
+  docView=button.dataset.docView;
+  updateDocView();$('.guide').scrollTop=0;
+  if(docView==='guide')drawGuide();
+  else {resetGuidePreview();drawTraitCatalog();}
+};
+
+function renderTraitDetail(entry){
+  const article=$('#trait-detail');article.replaceChildren();
+  article.dataset.group=entry?.group??'';
+  if(!entry){element(article,'p','没有匹配的特质。');return;}
+  const header=element(article,'header',null),title=element(header,'div',null);
+  element(title,'small',traitCatalogGroups[entry.group],'trait-kind');
+  element(title,'h3',entry.name);
+  const active=traitIsActive(entry);
+  const tag=element(header,'span',active?'已生效':'效果待接入','trait-status');
+  tag.dataset.live=String(active);
+  element(article,'h4',active?'当前效果':'设计效果');
+  element(article,'p',activeTraitEffects[entry.name]??entry.effect,'trait-effect');
+  element(article,'h4',entry.tradeoff?'可利用的场景':'使用建议');
+  element(article,'p',entry.hint,'trait-hint');
+}
+
+function drawTraitCatalog(){
+  const query=$('#trait-search').value.trim().toLowerCase();
+  const onlyActive=$('#trait-active-only').checked;
+  const results=orderedTraits.filter(entry=>(traitGroup==='all'||entry.group===traitGroup)&&(!onlyActive||traitIsActive(entry))&&
+    `${entry.name} ${activeTraitEffects[entry.name]??entry.effect} ${entry.hint}`.toLowerCase().includes(query));
+  const entry=results.find(item=>item.id===selectedTrait)??results[0];
+  selectedTrait=entry?.id??null;
+  for(const button of $$('[data-trait-group]'))button.setAttribute('aria-pressed',String(button.dataset.traitGroup===traitGroup));
+  $('#trait-count').textContent=`显示 ${results.length} / ${traitCatalog.length} 项`;
+  const list=$('#trait-list');list.replaceChildren();list.scrollTop=0;
+  for(const item of results){
+    const row=element(list,'li',null);
+    const button=element(row,'button',null);button.type='button';
+    button.dataset.traitId=item.id;button.dataset.group=item.group;
+    button.setAttribute('aria-pressed',String(item.id===selectedTrait));
+    element(button,'strong',item.name);
+    element(button,'small',traitIsActive(item)?'已生效':traitCatalogGroups[item.group]);
+    button.onclick=()=>{
+      selectedTrait=item.id;
+      for(const option of list.querySelectorAll('button'))option.setAttribute('aria-pressed',String(option===button));
+      renderTraitDetail(item);
+    };
+  }
+  renderTraitDetail(entry);
+}
+for(const button of $$('[data-trait-group]'))button.onclick=()=>{traitGroup=button.dataset.traitGroup;drawTraitCatalog();};
+$('#trait-search').addEventListener('input',drawTraitCatalog);
+$('#trait-active-only').addEventListener('change',drawTraitCatalog);
 
 function visibleDiscovery(id){
   if(raidPlayback.active){
@@ -28,9 +93,10 @@ function refreshGuideFocus(previous=document.activeElement){
   drawGuide();
   if(keyed)$$('.guide button').find(button=>button.dataset[keyed[0]]===keyed[1])?.focus({preventScroll:true});
 }
-function refreshOpenGuide(){if(appWindows.has('doc')&&!appWindows.get('doc').hidden)refreshGuideFocus();}
+function refreshOpenGuide(){if(docView==='guide'&&appWindows.has('doc')&&!appWindows.get('doc').hidden)refreshGuideFocus();}
 
 function drawGuide(){
+  if(docView!=='guide')return;
   const tabs=$('#guide-tabs'),rows=$('#guide-rows'),team=lineup();
   tabs.replaceChildren();rows.replaceChildren();
   $('#guide-revision').textContent=`攻略修订 ${campaign.revision}`;

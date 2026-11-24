@@ -420,7 +420,6 @@ window.addEventListener('message',e=>{
 
 // All animation state lives outside the pressure model. Revealing a queued card never draws another outcome.
 const resolveQueue=[];
-const traitNotes={'读秒专注':'主责机制的动作通过率提高 18 个百分点。','带练耐心':'带领不熟练的协助者完成机制，对方本次成长 ×1.6。','逆风耐心':'免除重复团灭的追加压力，突破原卡点再降 10 压力。','害怕背锅':'本人主责动作失误并导致团灭时，额外增加 22 压力。','交接迟疑':'对搭档好感低于 50 时，交接协作 ×0.65。','下意识沉默':'独立报点通过率降低 22 个百分点；按口令执行时执行 ×1.15。'};
 let showingResolve=false,revealed=false,revealTimer;
 function queueResolveFilm(event){
   resolveQueue.push({...event});
@@ -462,7 +461,7 @@ function revealResolve(){
   if(item.mood==='faith'){interfaceNote(392,.34);interfaceNote(587,.46,'triangle',.12);}
   else{interfaceNote(117,.35,'sawtooth');interfaceNote(73,.4,'triangle',.09);}
   $('#resolve-trait').textContent=item.name+' 获得「'+item.trait+'」';
-  if(traitNotes[item.trait])element($('#resolve-trait'),'small',traitNotes[item.trait]);
+  if(activeTraitEffects[item.trait])element($('#resolve-trait'),'small',activeTraitEffects[item.trait]);
   $('#resolve-change').textContent='压力 '+result.reset+' · 实战属性 '+(item.mood==='faith'?'+10%':'−30%')+' · 持续两天';
   $('#resolve-next').textContent=resolveQueue.length>1?'下一位':'继续';
 }

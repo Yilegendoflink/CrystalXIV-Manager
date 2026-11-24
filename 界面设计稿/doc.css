@@ -19,6 +19,8 @@
 .guide-head{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #8e6877}
 .guide-head h2{font-size:23px;color:#ffe4c2;line-height:1.2}
 .guide-head small,#guide-revision,.guide-sheet-head small,.guide-timeline header span{font:12px var(--mono);color:var(--guide-soft)}
+.doc-view-nav{display:flex;gap:4px;margin:-3px 0 11px;padding-bottom:6px;border-bottom:1px solid var(--guide-edge)}
+.doc-view-nav button{min-width:85px;font-weight:700;font-size:13px}
 .guide-workspace{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:start;gap:12px}
 .guide-workspace h3{font-size:15px}
 .guide-timeline,.guide-sheet{min-width:0;border:1px solid var(--guide-edge);background:var(--guide-panel);padding:10px}
@@ -74,10 +76,37 @@
 .guide-stats div[data-primary=true]{background:#49364b;color:#ffd0a6}
 .guide-stats dd{margin:0;text-align:right;font-family:var(--mono)}
 .guide-member button{width:100%;margin-top:5px}
+.trait-toolbar,.trait-search,.trait-tabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.trait-toolbar{justify-content:space-between;gap:8px;margin-bottom:9px}
+.trait-toolbar button{font-size:12px;min-height:29px}
+.trait-search input[type=search]{min-width:0;width:152px;padding:4px 6px;background:#252233;border:1px solid #826979;color:var(--guide-text);font-size:12px}
+.trait-search input[type=search]:focus-visible,.trait-search input[type=checkbox]:focus-visible{outline-color:#ffd0a5}
+.trait-search input[type=search]::placeholder{color:#cab8c2}
+.trait-search label:not(.sr-only){display:flex;align-items:center;gap:3px;color:#e8cfc9;font-size:12px;white-space:nowrap}
+.trait-search input[type=checkbox]{accent-color:#bd827b}
+.trait-library{display:grid;grid-template-columns:minmax(182px,.85fr) minmax(0,1.65fr);gap:9px;align-items:start}
+.trait-index,.trait-detail{min-width:0;border:1px solid var(--guide-edge);background:var(--guide-panel)}
+.trait-index{padding:7px;background:#282536}
+#trait-count{padding:0 3px 5px;color:var(--guide-soft);font-size:12px}
+#trait-list{list-style:none;margin:0;padding:2px 4px 2px 2px;display:grid;gap:3px;max-height:430px;overflow:auto;scrollbar-color:#986f74 #292638}
+#trait-list button{width:100%;display:flex;justify-content:space-between;align-items:baseline;gap:6px;text-align:left;font-size:12px}
+.trait-detail{padding:13px 15px;min-height:195px;overflow-wrap:anywhere}
+.trait-detail header{display:flex;justify-content:space-between;align-items:flex-start;gap:7px;padding-bottom:8px;border-bottom:1px solid var(--guide-edge)}
+.trait-detail h3{font-size:22px;color:#fee6ca}
+.trait-detail h4{margin:10px 0 3px;font-size:12px;color:var(--guide-active)}
+.trait-detail p{font-size:13px;line-height:1.6}
+.trait-hint{color:#e0cbd2}
+.trait-kind,#trait-list button small{color:var(--kind-color,var(--guide-soft));font-size:11px;white-space:nowrap}
+.trait-library [data-group=innate]{--kind-color:#a9d5c1}
+.trait-library [data-group=faith]{--kind-color:#f9cc9b}
+.trait-library [data-group=collapse]{--kind-color:#f0aaa6}
+.trait-status{flex:none;padding:1px 6px;border:1px solid #8c7586;color:#e1c5cc;white-space:nowrap;font-size:11px}
+.trait-status[data-live=true]{border-color:#719083;background:#2b3d43;color:#c6ead1}
 @media(min-width:741px){.app-window[data-app=doc]:not(.is-maximized){width:min(calc(100% - 136px),1080px);height:min(715px,calc(100% - 115px))}}
 @media(max-width:900px){.guide-workspace{grid-template-columns:160px minmax(0,1fr)}.guide-content{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:740px){
   .guide{padding:8px}.guide-head{margin-bottom:8px}.guide-head h2{font-size:19px}.guide-head-actions{flex-wrap:wrap;justify-content:flex-end}#guide-revision{font-size:10px}
   .guide-workspace{grid-template-columns:minmax(0,1fr);gap:6px}.guide-timeline,.guide-sheet{padding:7px}
   #guide-tabs{margin:4px 0}#guide-rows{grid-template-columns:repeat(2,minmax(0,1fr))}.guide-sheet-head h3{font-size:19px}.guide-unlocks{font-size:10px}
+  .doc-view-nav{margin-bottom:8px}.trait-library{grid-template-columns:minmax(0,1fr);gap:6px}#trait-list{max-height:175px}.trait-detail{padding:9px 10px}
 }

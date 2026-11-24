@@ -6,6 +6,7 @@
   <title>FF职业固定队经理2026 · Crystal 界面设计稿</title>
   <link rel="stylesheet" href="./design.css">
   <script src="./nge-data.js" defer></script>
+  <script src="./traits.js" defer></script>
   <script src="./qo.js" defer></script>
   <script src="./design.js" defer></script>
   <link rel="stylesheet" href="./qo.css">
@@ -17,6 +18,7 @@
   <link rel="stylesheet" href="./doc.css">
   <link rel="stylesheet" href="./manager.css">
   <link rel="stylesheet" href="./recruit.css">
+  <link rel="stylesheet" href="./manual.css">
 </head>
 <body>
   <main>
@@ -103,6 +105,7 @@
         <button type="button" data-app="cook" aria-label="打开 Cook"><canvas data-icon="cook" width="24" height="24" aria-hidden="true"></canvas><span>Cook</span></button>
         <button type="button" data-app="nge" aria-label="打开 NGE"><canvas data-icon="nge" width="24" height="24" aria-hidden="true"></canvas><span>NGE</span></button>
         <button type="button" data-app="doc" aria-label="打开 Doc"><canvas data-icon="doc" width="24" height="24" aria-hidden="true"></canvas><span>Doc</span></button>
+        <button type="button" data-app="manual" aria-label="打开基本玩法.txt"><canvas data-icon="manual" width="24" height="24" aria-hidden="true"></canvas><span>基本玩法.txt</span></button>
       </nav>
       <aside class="desktop-brief" aria-label="本次副本进度">
         <p id="desk-context">准备期 · 第 7 天 18:00</p>
@@ -204,9 +207,10 @@
           </div>
         </section>
 
-        <section class="app-body guide" data-app-panel="doc" aria-label="Doc 队伍攻略" hidden>
-          <header class="guide-head"><div><small>Doc / 选择副本</small><h2>炎帝陵攻略</h2></div><div class="guide-head-actions"><span id="guide-revision"></span><button type="button" data-app="cook">打开 Cook</button></div></header>
-          <div class="guide-workspace">
+        <section class="app-body guide" data-app-panel="doc" aria-label="Doc 攻略与特质图鉴" hidden>
+          <header class="guide-head"><div><small id="doc-subtitle">Doc / 选择副本</small><h2 id="doc-heading">炎帝陵攻略</h2></div><div class="guide-head-actions" id="guide-head-actions"><span id="guide-revision"></span><button type="button" data-app="cook">打开 Cook</button></div></header>
+          <nav class="doc-view-nav" aria-label="Doc 页面"><button type="button" data-doc-view="guide" aria-controls="doc-guide" aria-pressed="true">机制攻略</button><button type="button" data-doc-view="traits" aria-controls="doc-traits" aria-pressed="false">特质图鉴</button></nav>
+          <div id="doc-guide" class="guide-workspace">
             <aside class="guide-timeline" aria-label="机制时间轴">
               <header><h3>机制时间轴</h3><span id="guide-count"></span></header>
               <nav id="guide-tabs" aria-label="攻略阶段"></nav><ol id="guide-rows" aria-label="阶段机制"></ol>
@@ -226,6 +230,32 @@
               </div>
             </section>
           </div>
+          <section id="doc-traits" hidden aria-labelledby="doc-heading">
+            <div class="trait-toolbar">
+              <nav class="trait-tabs" aria-label="特质分类">
+                <button type="button" data-trait-group="all" aria-pressed="true">全部</button><button type="button" data-trait-group="innate" aria-pressed="false">天生特质</button><button type="button" data-trait-group="faith" aria-pressed="false">坚定信念</button><button type="button" data-trait-group="collapse" aria-pressed="false">精神崩溃</button>
+              </nav>
+              <div class="trait-search"><label class="sr-only" for="trait-search">搜索特质</label><input type="search" id="trait-search" placeholder="搜索名称或效果"><label><input type="checkbox" id="trait-active-only">仅已生效</label></div>
+            </div>
+            <div class="trait-library">
+              <section class="trait-index" aria-label="特质列表"><p id="trait-count" role="status"></p><ul id="trait-list"></ul></section>
+              <article id="trait-detail" class="trait-detail" aria-label="特质详情" aria-live="polite"></article>
+            </div>
+          </section>
+        </section>
+
+        <section class="app-body manual" data-app-panel="manual" aria-labelledby="manual-heading" hidden>
+          <header class="manual-header"><div><p>Crystal 记事本</p><h2 id="manual-heading">从空队到第一次开怪</h2></div><span>只读</span></header>
+          <div class="manual-page">
+            <p class="manual-intro">炎帝陵每轮有 7 天准备期，从第 8 天开始挑战，最多打 14 天。新挑战从空队开始。</p>
+            <ol class="manual-steps">
+              <li><div><h3>在 NGE 发招募帖</h3><p>打开 NGE，点击「发布招募帖」。选缺少的席位和开荒起止时间，比如 20:00–24:00。一张帖能招多个席位。基础招募每 4 游戏小时到一批，每批 2–5 人，已选席位轮流出候选。</p><p>用桌面经理工具推进时间，或跳到「最近招募结果」。在帖子里调查候选或直接招入，留意他们每天实际能来的时段。</p></div><button type="button" class="plain" data-app="nge">打开 NGE</button></li>
+              <li><div><h3>在 QO 确定八席首发</h3><p>打开固定队群聊的「群聊设置」，给 MT、ST、H1、H2 和 D1–D4 各安排一名首发。队伍最多 12 人，多出的成员可留作候补。点队员资料查看能力、特质和档期。</p></div><button type="button" class="plain" data-app="qo">打开 QO</button></li>
+              <li><div><h3>在日程里找八个人都能到的时间</h3><p>经理工具的「日程」会显示每个时段的首发出勤人数。把预约的起止时间设在连续显示 8/8 可出勤的窗口里。准备期结束后，可通过经理工具跳到「下次开荒」。</p></div><button type="button" class="plain" data-calendar>打开日程</button></li>
+              <li><div><h3>去 Cook 开怪、看战报</h3><p>第 8 天起，预约时段内首发八席到齐、共同出勤时间足够时，点击「开怪」。每把按游戏内实际用时推进。在 Cook 看机制播报、团血、压力和精力，团灭后可花 5 分钟复盘灭团机制。</p><p>两把之间也可以安排短休。累计两小时后可决定按计划进行、提前收队或延后。首次遇到的机制会记进 Doc，探明度达到 30% 后可以安排处理人。</p></div><button type="button" class="plain" data-app="cook">打开 Cook</button></li>
+            </ol>
+            <footer class="manual-footer"><span>在 Doc 可以查机制和特质的具体效果。</span><button type="button" class="plain" data-app="doc">打开 Doc</button></footer>
+          </div>
         </section>
       </div>
 
@@ -235,6 +265,7 @@
         <button type="button" data-app="cook">Cook · 监控与指挥</button>
         <button type="button" data-app="nge">NGE · 新闻与招募</button>
         <button type="button" data-app="doc">Doc · 队伍攻略</button>
+        <button type="button" data-app="manual">基本玩法.txt</button>
         <hr>
         <button type="button" data-save-menu>存档管理</button>
         <button type="button" data-home>返回开始</button>

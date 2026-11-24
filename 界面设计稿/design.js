@@ -9,6 +9,7 @@ const appInfo = {
   qo: ['QO', '队伍消息与成员管理'],
   cook: ['Cook', '观战、语音与指挥'],
   nge: ['NGE', '新闻及固定队招募'],
+  manual: ['基本玩法.txt', 'Crystal 记事本 · 只读'],
 };
 const opened = new Set();
 const appWindows = new Map();
@@ -1329,6 +1330,7 @@ $('#cook-short-rest').addEventListener('click', event => {
 
 const pictograms = {
   doc: ['..AAAAA..','..ABBBBA.','..ACCCBA.','..ABBBBA.','..ACCCBA.','..ABBBBA.','..ACCABA.','..ABBBBA.','..AAAAAA.'],
+  manual: ['.AAAAAA..','.ABBBACA.','.ABBBCCCA','.ABBBBBBA','.ABDDDBBA','.ABBBBDBA','.ABDDDBBA','.ABBBBBBA','.AAAAAAAA'],
   crystal: ['....A....','...ABA...','..ABBBA..','.ABBCBBA.','ABBCDCBBA','.ABDCDDA.','..ADCDA..','...ADA...','....A....'],
   qo: ['.AAAAAAA.','ABBBBBBBA','ABBBBBBBA','ABCACACBA','ABBBBBBBA','.ABBBBBA.','..ABA.A..','..AA.....','.........'],
   cook: ['..AAAAA..','.ABBBBBA.','ABBBCBBBA','ABCBCBCBA','ABCBCBCBA','ABCBCBCBA','.ABBACBA.','...AABBA.','.....AA..'],
@@ -1336,6 +1338,7 @@ const pictograms = {
 };
 const iconColors = {
   doc: ['#493347','#f0d4aa','#ae715b','#8d6356'],
+  manual: ['#4b394b','#f5e4cb','#a6bb96','#a16f64'],
   crystal: ['#38293f','#a875ac','#f4c482','#ce8292'],
   qo: ['#6a3d44','#e7ab83','#fff1cf','#bd735c'],
   cook: ['#314b56','#86bbaa','#e9e4bc','#496b6e'],
